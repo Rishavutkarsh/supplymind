@@ -288,6 +288,12 @@ GET  /v2/state
 POST /v2/step
 GET  /v2/heuristic-joint-action
 GET  /v2/rules
+POST /v2/center/reset
+GET  /v2/center/state
+POST /v2/center/step
+POST /v2/warehouse/reset
+GET  /v2/warehouse/state
+POST /v2/warehouse/step
 GET  /v2/ui
 ```
 
@@ -304,6 +310,18 @@ V2 tracks three reward views:
 - **global welfare**, used for official grading
 - **center reward**, used to train/evaluate the central coordinator
 - **per-warehouse rewards**, used to train/evaluate the shared warehouse policy
+
+Global welfare deliberately does not reward transfer activity directly. Transfers affect the official score only through later fulfillment, lower stockouts, lower waste, and their real movement cost. The center still receives a small center-only broker fee for successful transfers, so the coordinator has an incentive to broker useful trades without turning transfer count into a global reward hack.
+
+Terminal V2 summaries include audit metrics such as transfer count, successful transfer units, broker fees, stockouts, holding cost, spoilage, terminal leftovers, invalid penalties, and per-warehouse service rates. These audit metrics are not exposed in normal agent-facing state; agents see current-step reward components, events, and invalid-action details. A small terminal fairness penalty discourages serving one region while starving another.
+
+V2 also exposes role-specific training endpoints:
+
+- `/v2/center/*`: the agent controls only the center action while warehouses are frozen to a deterministic local heuristic.
+- `/v2/warehouse/*`: the agent controls warehouse actions while the center is frozen to a deterministic procurement/replenishment/matching heuristic.
+- `/v2/step`: final joint evaluation where trained center and trained warehouse policies can act together.
+
+This keeps small-model training realistic: the warehouse model learns local order and inventory behavior first, then the center model learns network allocation against a stable warehouse policy.
 
 The V2 grading formula is the same normalized scheme:
 

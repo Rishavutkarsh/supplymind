@@ -27,6 +27,7 @@ order_rewards:
 
 center_rewards:
   transfer_broker_fee_per_unit: 0.30
+  transfer_broker_fee_compensation_share: 0.05
   rejected_transfer_penalty: 1.00
   warehouse_spoilage_share: 0.20
   depot_spoilage_share: 1.00
@@ -53,3 +54,4 @@ global_rewards:
   stockout_penalty_multiplier: 1.0
   trust_degradation_penalty: 1.0
   terminal_inventory_penalty_multiplier: 0.05
+  terminal_fairness_weight: 20.0

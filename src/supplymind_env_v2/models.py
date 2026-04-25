@@ -85,6 +85,7 @@ class WarehouseObservation(BaseModel):
     inventory: dict[SKU, int]
     drivers_available: int
     local_orders: list[LocalOrderSnapshot]
+    order_action_context: list[dict[str, Any]] = Field(default_factory=list)
     pending_transfer_proposals: list[PendingTransferProposal] = Field(default_factory=list)
     safety_stock: dict[SKU, int]
     route_costs: dict[str, float]
@@ -176,6 +177,10 @@ class CenterAction(BaseModel):
 class V2JointAction(BaseModel):
     warehouse_actions: dict[str, WarehouseAction] = Field(default_factory=dict)
     central_action: CenterAction = Field(default_factory=CenterAction)
+
+
+class V2WarehouseRoleAction(BaseModel):
+    warehouse_actions: dict[str, WarehouseAction] = Field(default_factory=dict)
 
 
 class V2Reward(BaseModel):

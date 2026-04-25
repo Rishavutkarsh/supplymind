@@ -19,6 +19,12 @@ def naive_joint_policy(observation) -> V2JointAction:
 
 
 def heuristic_joint_policy(observation) -> V2JointAction:
+    warehouse_actions = fixed_warehouse_actions(observation)
+    center_action = fixed_center_action(observation, warehouse_actions)
+    return V2JointAction(warehouse_actions=warehouse_actions, central_action=center_action)
+
+
+def fixed_warehouse_actions(observation) -> dict[str, WarehouseAction]:
     warehouse_actions = {}
     for warehouse_id, warehouse in observation.warehouses.items():
         order_decisions = []
@@ -27,7 +33,8 @@ def heuristic_joint_policy(observation) -> V2JointAction:
                 continue
             enough_stock = warehouse.inventory.get(order.sku, 0) >= order.units
             enough_time = order.deadline_round >= observation.round_index + 1
-            order_decisions.append({"order_id": order.order_id, "decision": "accept" if enough_time and enough_stock else "reject"})
+            decision = "accept" if enough_time and enough_stock else "reject"
+            order_decisions.append({"order_id": order.order_id, "decision": decision})
         offers = []
         requests = []
         for sku, units in warehouse.inventory.items():
@@ -50,33 +57,85 @@ def heuristic_joint_policy(observation) -> V2JointAction:
             transfer_responses=responses,
             local_priority=priorities,
         )
+    return warehouse_actions
 
-    center_replenishments = []
-    used_trucks = 0
-    for summary in sorted(observation.center.warehouse_summaries, key=lambda item: item["pending_orders"] + item["accepted_orders"], reverse=True):
-        if used_trucks >= observation.center.depot_trucks_available:
-            break
-        inventory = summary["inventory"]
-        for sku, band in observation.center.price_bands.items():
-            if inventory.get(sku, 0) <= 1 and observation.center.depot_inventory.get(sku, 0) > 0:
-                center_replenishments.append({"to_warehouse": summary["warehouse_id"], "sku": sku, "units": min(2, observation.center.depot_inventory[sku]), "unit_price": band["fair_wholesale_price"]})
-                used_trucks += 1
-                break
 
-    procurements = []
-    for sku, units in observation.center.depot_inventory.items():
-        if units <= 2 and observation.center.remaining_rounds > 4:
-            band = observation.center.price_bands[sku]
-            procurements.append({"sku": sku, "units": 3, "max_unit_cost": band["procurement_cost"]})
-            break
-
-    return V2JointAction(
-        warehouse_actions=warehouse_actions,
-        central_action=CenterAction(
-            central_procurements=procurements,
-            central_replenishments=center_replenishments,
-        ),
+def fixed_center_action(observation, warehouse_actions: dict[str, WarehouseAction] | None = None) -> CenterAction:
+    warehouse_actions = warehouse_actions or {}
+    center_replenishments = _targeted_replenishments(observation)
+    procurements = _targeted_procurements(observation)
+    offer_matches = _match_warehouse_signals(warehouse_actions)
+    return CenterAction(
+        central_procurements=procurements,
+        central_replenishments=center_replenishments,
+        offer_matches=offer_matches,
     )
 
 
-__all__ = ["heuristic_joint_policy", "naive_joint_policy", "no_op_policy"]
+def _targeted_replenishments(observation) -> list[dict]:
+    center_replenishments = []
+    used_trucks = 0
+    depot_left = dict(observation.center.depot_inventory)
+    summaries = sorted(
+        observation.center.warehouse_summaries,
+        key=lambda item: (item["pending_orders"] + item["accepted_orders"], -sum(item["inventory"].values())),
+        reverse=True,
+    )
+    for summary in summaries:
+        if used_trucks >= observation.center.depot_trucks_available:
+            break
+        inventory = summary["inventory"]
+        sku_pressure = sorted(
+            observation.center.price_bands.items(),
+            key=lambda item: (inventory.get(item[0], 0), -item[1]["customer_value"]),
+        )
+        for sku, band in sku_pressure:
+            if inventory.get(sku, 0) <= 1 and depot_left.get(sku, 0) > 0:
+                units = min(2, depot_left[sku])
+                center_replenishments.append({"to_warehouse": summary["warehouse_id"], "sku": sku, "units": units, "unit_price": band["fair_wholesale_price"]})
+                depot_left[sku] -= units
+                used_trucks += 1
+                break
+    return center_replenishments
+
+
+def _targeted_procurements(observation) -> list[dict]:
+    procurements = []
+    if observation.center.remaining_rounds <= 5:
+        return procurements
+    for sku, units in observation.center.depot_inventory.items():
+        if units > 2:
+            continue
+        band = observation.center.price_bands[sku]
+        procurements.append({"sku": sku, "units": 3, "max_unit_cost": band["procurement_cost"]})
+        break
+    return procurements
+
+
+def _match_warehouse_signals(warehouse_actions: dict[str, WarehouseAction]) -> list[dict]:
+    offers = []
+    requests = []
+    for warehouse_id, action in warehouse_actions.items():
+        for offer in action.inventory_offers:
+            offers.append({"signal_id": f"{warehouse_id}:offer:{offer.sku}", "warehouse_id": warehouse_id, "sku": offer.sku, "units": offer.units, "price": offer.ask_price})
+        for request in action.inventory_requests:
+            requests.append({"signal_id": f"{warehouse_id}:request:{request.sku}", "warehouse_id": warehouse_id, "sku": request.sku, "units": request.units, "price": request.max_price})
+    matches = []
+    used_offer_units: dict[str, int] = {}
+    used_request_units: dict[str, int] = {}
+    for request in sorted(requests, key=lambda item: -price_band(item["sku"])["customer_value"]):
+        for offer in sorted([item for item in offers if item["sku"] == request["sku"] and item["warehouse_id"] != request["warehouse_id"]], key=lambda item: item["price"]):
+            offer_left = offer["units"] - used_offer_units.get(offer["signal_id"], 0)
+            request_left = request["units"] - used_request_units.get(request["signal_id"], 0)
+            units = min(offer_left, request_left, 2)
+            if units <= 0 or offer["price"] > request["price"]:
+                continue
+            compensation = max(offer["price"] * units, price_band(offer["sku"])["fair_wholesale_price"] * units)
+            matches.append({"offer_signal_id": offer["signal_id"], "request_signal_id": request["signal_id"], "units": units, "compensation": compensation})
+            used_offer_units[offer["signal_id"]] = used_offer_units.get(offer["signal_id"], 0) + units
+            used_request_units[request["signal_id"]] = used_request_units.get(request["signal_id"], 0) + units
+            break
+    return matches
+
+
+__all__ = ["fixed_center_action", "fixed_warehouse_actions", "heuristic_joint_policy", "naive_joint_policy", "no_op_policy"]
