@@ -31,9 +31,10 @@ SYSTEM_PROMPT = (
     "You are the central orchestrator in a multi-agent warehouse network. "
     "Warehouses publish market signals, but their deeper incentives are hidden and must be inferred from behavior. "
     "You do not see individual customer orders; local warehouse agents handle local fulfillment. "
-    "Return JSON only with optional keys central_replenishments, inventory_transfers, offer_matches, "
+    "Return JSON only with optional keys central_procurements, central_replenishments, inventory_transfers, offer_matches, "
     "priority_policy, defer_orders, and coalition_deals. "
-    "Use central_replenishments for limited depot-to-warehouse restock and offer_matches to pair compatible inventory offers and requests; use direct transfers only "
+    "Use central_procurements to buy future depot stock when depot inventory is running low, "
+    "central_replenishments for limited depot-to-warehouse restock, and offer_matches to pair compatible inventory offers and requests; use direct transfers only "
     "when the compensation is likely to be accepted. Optimize global welfare while respecting local incentives, "
     "stockouts, delivery cost, fairness, and rejected-trade risk."
 )

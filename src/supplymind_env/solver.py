@@ -7,7 +7,7 @@ from .policies import baseline_policy, heuristic_policy
 
 
 def privileged_reference_policy(observation: V3Observation) -> V3Action:
-    action = baseline_policy(observation)
+    action = heuristic_policy(observation)
     priority_policy = []
     if observation.demand_reports:
         top_report = max(
@@ -44,6 +44,7 @@ def privileged_reference_policy(observation: V3Observation) -> V3Action:
                 )
                 break
     return V3Action(
+        central_procurements=action.central_procurements,
         central_replenishments=action.central_replenishments,
         inventory_transfers=transfers[:2],
         driver_loans=action.driver_loans,
@@ -84,6 +85,7 @@ def _oracle_action(env: V3SupplyMindEnv, observation: V3Observation) -> V3Action
     recipe = env._require_recipe()
     specs_by_region = {spec.region: spec for spec in recipe.warehouse_specs}
     replenishments = []
+    procurements_by_sku: dict[str, int] = {}
     committed_depot: dict[str, int] = {}
     used_trucks = 0
     for order in sorted(
@@ -104,4 +106,12 @@ def _oracle_action(env: V3SupplyMindEnv, observation: V3Observation) -> V3Action
             replenishments.append({"to_warehouse": spec.warehouse_id, "sku": order.sku, "units": units})
             committed_depot[order.sku] = committed_depot.get(order.sku, 0) + units
             used_trucks += 1
-    return V3Action(central_replenishments=replenishments)
+        if depot_left <= 2 and env.round_index + recipe.profile.depot_procurement_lead_time < recipe.profile.total_rounds:
+            already = sum(procurements_by_sku.values())
+            buy_units = min(3, recipe.profile.depot_procurement_cap - already)
+            if buy_units > 0:
+                procurements_by_sku[order.sku] = procurements_by_sku.get(order.sku, 0) + buy_units
+    return V3Action(
+        central_procurements=[{"sku": sku, "units": units} for sku, units in procurements_by_sku.items()],
+        central_replenishments=replenishments,
+    )

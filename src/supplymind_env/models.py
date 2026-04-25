@@ -21,6 +21,8 @@ class DifficultyProfile(BaseModel):
     truck_capacity: int
     depot_replenishment_cap: int = 0
     depot_trucks: int = 1
+    depot_procurement_cap: int = 0
+    depot_procurement_lead_time: int = 2
     starting_trust: float
     stockout_penalty_multiplier: float
     holding_cost_per_unit: float
@@ -88,6 +90,9 @@ class CentralDepotSnapshot(BaseModel):
     trucks_available: int
     trucks_returning: list[int] = Field(default_factory=list)
     replenishment_cap: int
+    procurement_cap: int = 0
+    procurement_lead_time: int = 0
+    inbound_procurements: list[dict[str, int | str]] = Field(default_factory=list)
     message: str = ""
 
 
@@ -153,6 +158,13 @@ class CentralReplenishmentProposal(BaseModel):
     units: int
 
 
+class CentralProcurementProposal(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    sku: SKU
+    units: int
+
+
 class MarketSignal(BaseModel):
     model_config = ConfigDict(frozen=True)
 
@@ -195,6 +207,7 @@ class CoalitionDeal(BaseModel):
 
 class V3Action(BaseModel):
     fulfillments: list[FulfillmentDecision] = Field(default_factory=list)
+    central_procurements: list[CentralProcurementProposal] = Field(default_factory=list)
     central_replenishments: list[CentralReplenishmentProposal] = Field(default_factory=list)
     inventory_transfers: list[InventoryTransferProposal] = Field(default_factory=list)
     driver_loans: list[DriverLoanProposal] = Field(default_factory=list)

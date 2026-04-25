@@ -82,8 +82,11 @@
       <input id="seed" type="number" value="12345" />
       <button id="reset">Reset</button>
       <button id="heuristic" class="secondary">Load Heuristic</button>
+      <button id="subagent" class="secondary">Load Subagent</button>
       <button id="step">Step</button>
-      <button id="run" class="secondary">Run Episode</button>
+      <button id="run" class="secondary">Run Heuristic</button>
+      <button id="run-subagent" class="secondary">Run Subagent</button>
+      <button id="load-trace" class="ghost">Load Black-box Trace</button>
     </div>
   </header>
   <main>
@@ -120,7 +123,11 @@
       </section>
       <section>
         <h2>Action JSON</h2>
-        <textarea id="action">{"central_replenishments":[],"inventory_transfers":[],"offer_matches":[],"priority_policy":[],"defer_orders":[],"coalition_deals":[]}</textarea>
+        <textarea id="action">{"central_procurements":[],"central_replenishments":[],"inventory_transfers":[],"offer_matches":[],"priority_policy":[],"defer_orders":[],"coalition_deals":[]}</textarea>
+      </section>
+      <section>
+        <h2>Subagent Prompt</h2>
+        <pre id="prompt">Prompt not loaded yet.</pre>
       </section>
       <section>
         <h2>Events</h2>
@@ -160,8 +167,43 @@
       $("action").value = JSON.stringify(await res.json(), null, 2);
     }
 
+    async function loadSubagent() {
+      const [actionRes, promptRes] = await Promise.all([
+        fetch("/subagent-action"),
+        fetch("/subagent-prompt")
+      ]);
+      $("action").value = JSON.stringify(await actionRes.json(), null, 2);
+      const prompt = await promptRes.json();
+      $("prompt").textContent = prompt.system_prompt;
+    }
+
+    async function loadBlackboxTrace() {
+      const res = await fetch("/blackbox-trace");
+      if (!res.ok) {
+        alert("No black-box trace found yet.");
+        return;
+      }
+      const trace = await res.json();
+      episode = (trace.rounds || []).map(round => ({
+        round: round.round_index,
+        reward: round.reward,
+        cumulative: round.cumulative_reward,
+        decision: round.action,
+        events: [
+          ...(round.reasoning ? [`reasoning: ${round.reasoning}`] : []),
+          ...(round.events || [])
+        ],
+        components: round.components,
+        reports: round.observation_summary?.demand_reports?.length || 0,
+        done: round.done
+      }));
+      $("prompt").textContent = `Black-box Codex subagent replay\nTask: ${trace.task}\nSeed: ${trace.seed}\nTotal reward: ${trace.final_episode_summary?.total_reward ?? "unknown"}\nGraded score: ${trace.final_episode_summary?.graded_score ?? "not returned"}`;
+      render();
+    }
+
     function emptyAction() {
       return {
+        central_procurements: [],
         central_replenishments: [],
         inventory_transfers: [],
         offer_matches: [],
@@ -198,18 +240,24 @@
       return data.done;
     }
 
-    async function runEpisode() {
+    async function runEpisode(mode = "heuristic") {
       if (running) return;
       running = true;
       setBusy(true);
       try {
-        await loadHeuristic();
+        if (mode === "subagent") await loadSubagent();
+        else await loadHeuristic();
         let done = false;
         let guard = 0;
-        while (!done && guard < 20) {
+        const maxSteps = Math.max(5, state?.scenario_info?.total_rounds || 40);
+        while (!done && guard < maxSteps) {
           done = await step();
           guard += 1;
           await new Promise(resolve => setTimeout(resolve, 160));
+          if (!done) {
+            if (mode === "subagent") await loadSubagent();
+            else await loadHeuristic();
+          }
         }
       } finally {
         running = false;
@@ -220,8 +268,11 @@
     function setBusy(value) {
       $("reset").disabled = value;
       $("heuristic").disabled = value;
+      $("subagent").disabled = value;
       $("step").disabled = value;
       $("run").disabled = value;
+      $("run-subagent").disabled = value;
+      $("load-trace").disabled = value;
     }
 
     function render(lastStep) {
@@ -235,7 +286,9 @@
               <div class="barrow"><span>${sku}</span><div class="bar"><span style="width:${Math.min(100, units * 10)}%"></span></div><span>${units}</span></div>
             `).join("")}
           </div>
-          <p class="muted">Returning trucks [${state.central_depot.trucks_returning.join(", ")}], cap ${state.central_depot.replenishment_cap}</p>
+          <p class="muted">Returning trucks [${state.central_depot.trucks_returning.join(", ")}], ship cap ${state.central_depot.replenishment_cap}</p>
+          <p class="muted">Buy cap ${state.central_depot.procurement_cap}, lead ${state.central_depot.procurement_lead_time} round(s)</p>
+          <p class="muted">${procurementSummary(state.central_depot.inbound_procurements)}</p>
         </div>`;
       $("warehouses").innerHTML = state.warehouses.map(w => `
         <div class="card">
@@ -292,6 +345,7 @@
     function decisionChips(action) {
       const current = action || emptyAction();
       const chips = [
+        ["buy", current.central_procurements?.length || 0],
         ["depot", current.central_replenishments?.length || 0],
         ["transfers", current.inventory_transfers?.length || 0],
         ["matches", current.offer_matches?.length || 0],
@@ -319,11 +373,19 @@
       return `Routes: nearest ${near[0]} ${Number(near[1]).toFixed(1)}, farthest ${far[0]} ${Number(far[1]).toFixed(1)}`;
     }
 
+    function procurementSummary(inbound) {
+      if (!inbound || !inbound.length) return "No inbound depot purchases.";
+      return `Inbound purchases: ${inbound.map(item => `${item.units} ${item.sku} @ round ${item.arrival_round}`).join(", ")}`;
+    }
+
     $("reset").onclick = reset;
     $("heuristic").onclick = loadHeuristic;
+    $("subagent").onclick = loadSubagent;
     $("step").onclick = step;
-    $("run").onclick = runEpisode;
-    reset().then(loadHeuristic);
+    $("run").onclick = () => runEpisode("heuristic");
+    $("run-subagent").onclick = () => runEpisode("subagent");
+    $("load-trace").onclick = loadBlackboxTrace;
+    reset().then(loadSubagent);
   </script>
 </body>
 </html>

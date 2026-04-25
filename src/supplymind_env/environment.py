@@ -48,6 +48,7 @@ class V3SupplyMindEnv:
         self.central_depot_inventory: dict[str, int] = {}
         self.depot_trucks_available = 0
         self.depot_truck_returns: list[int] = []
+        self.depot_procurement_returns: list[tuple[int, str, int]] = []
         self.drivers_available: dict[str, int] = {}
         self.driver_returns: dict[str, list[int]] = {}
         self.trust: dict[str, float] = {}
@@ -104,6 +105,7 @@ class V3SupplyMindEnv:
         self.central_depot_inventory = dict(recipe.central_depot_inventory)
         self.depot_trucks_available = recipe.profile.depot_trucks
         self.depot_truck_returns = []
+        self.depot_procurement_returns = []
         self.drivers_available = dict(recipe.initial_drivers)
         self.driver_returns = {warehouse_id: [] for warehouse_id in self.inventory}
         self.trust = {spec.warehouse_id: recipe.profile.starting_trust for spec in recipe.warehouse_specs}
@@ -141,6 +143,12 @@ class V3SupplyMindEnv:
                 trucks_available=self.depot_trucks_available,
                 trucks_returning=sorted(self.depot_truck_returns),
                 replenishment_cap=recipe.profile.depot_replenishment_cap,
+                procurement_cap=recipe.profile.depot_procurement_cap,
+                procurement_lead_time=recipe.profile.depot_procurement_lead_time,
+                inbound_procurements=[
+                    {"arrival_round": round_index, "sku": sku, "units": units}
+                    for round_index, sku, units in sorted(self.depot_procurement_returns)
+                ],
                 message=_depot_message(self.central_depot_inventory, self.depot_trucks_available),
             ),
             warehouses=[
@@ -181,8 +189,8 @@ class V3SupplyMindEnv:
                 transfer_cap=recipe.profile.transfer_cap,
                 truck_capacity=recipe.profile.truck_capacity,
                 objective_brief="Maximize global welfare from compressed warehouse demand reports.",
-                action_brief="Submit depot replenishments, approved offer matches, and transfer proposals. Warehouses handle local orders.",
-                episode_brief="Each step resolves central allocation, local warehouse fulfillment, deliveries, and expiries.",
+                action_brief="Buy future depot stock, ship depot stock, approve offer matches, and propose transfers. Warehouses handle local orders.",
+                episode_brief="Each step resolves procurement arrivals, central allocation, local warehouse fulfillment, deliveries, and expiries.",
             ),
         )
 
@@ -196,6 +204,7 @@ class V3SupplyMindEnv:
             )
 
         recipe = self._require_recipe()
+        self._receive_procurements()
         self._return_drivers()
         self._return_depot_trucks()
         components: dict[str, float] = {}
@@ -207,6 +216,26 @@ class V3SupplyMindEnv:
             signal.signal_id: signal
             for signal in generate_market_signals(recipe, self.inventory, self.drivers_available, self.trust)
         }
+
+        procured_units = 0
+        for procurement in action.central_procurements:
+            if procurement.units <= 0 or procurement.sku not in self.central_depot_inventory:
+                add_component(components, "invalid_action_penalty", -5.0)
+                continue
+            if procured_units + procurement.units > recipe.profile.depot_procurement_cap:
+                add_component(components, "invalid_action_penalty", -4.0)
+                events.append("central procurement cap exceeded")
+                continue
+            arrival_round = self.round_index + recipe.profile.depot_procurement_lead_time
+            unit_cost = _procurement_unit_cost(procurement.sku)
+            self.depot_procurement_returns.append((arrival_round, procurement.sku, procurement.units))
+            procured_units += procurement.units
+            add_component(components, "central_procurement_cost", -unit_cost * procurement.units)
+            if self.central_depot_inventory.get(procurement.sku, 0) <= 2:
+                add_component(components, "strategic_procurement_bonus", 0.35 * procurement.units)
+            events.append(
+                f"central bought {procurement.units} {procurement.sku} for depot arrival at round {arrival_round}"
+            )
 
         moved_units = 0
         depot_units = 0
@@ -406,6 +435,14 @@ class V3SupplyMindEnv:
             self.depot_trucks_available += len(returned)
             self.depot_truck_returns = [round_index for round_index in self.depot_truck_returns if round_index > self.round_index]
 
+    def _receive_procurements(self) -> None:
+        arrived = [item for item in self.depot_procurement_returns if item[0] <= self.round_index]
+        if not arrived:
+            return
+        for _, sku, units in arrived:
+            self.central_depot_inventory[sku] = self.central_depot_inventory.get(sku, 0) + units
+        self.depot_procurement_returns = [item for item in self.depot_procurement_returns if item[0] > self.round_index]
+
     def _resolve_local_warehouse_fulfillment(
         self,
         open_orders: dict[str, OrderTemplate],
@@ -479,6 +516,15 @@ def _depot_message(inventory: dict[str, int], trucks_available: int) -> str:
     if low:
         return f"Central depot can replenish, but {', '.join(low)} stock is tight."
     return "Central depot has limited emergency replenishment capacity."
+
+
+def _procurement_unit_cost(sku: str) -> float:
+    return {
+        "fresh_milk": 4.0,
+        "rice_bag_5kg": 3.2,
+        "insulin_pack": 8.0,
+        "usb_c_charger": 9.0,
+    }.get(sku, 5.0)
 
 
 def _matches_priority_policy(order: OrderTemplate, priority_policy: list) -> bool:

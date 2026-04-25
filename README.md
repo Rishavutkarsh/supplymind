@@ -54,6 +54,7 @@ It does **not** observe raw customer orders.
 
 It can act by:
 
+- buying new inventory into the central depot, with procurement caps and lead time
 - sending stock from the central depot to warehouses
 - approving warehouse offer/request matches
 - proposing direct inventory transfers
@@ -77,9 +78,9 @@ Warehouses handle their own local fulfillment. They decide which local orders to
 
 ### Central Depot
 
-The central depot has finite inventory and limited trucks. It can supply warehouses, but every shipment consumes stock and truck capacity.
+The central depot has finite inventory, limited trucks, and a limited procurement budget each round. It can buy new stock, but purchases arrive after a lead time. It can also supply warehouses, but every shipment consumes depot stock and truck capacity.
 
-This makes holding inventory a real strategic choice.
+This makes forecasting and holding inventory real strategic choices.
 
 ## Items
 
@@ -107,20 +108,22 @@ Each task is generated deterministically from a seed. The same task and seed rec
 Each round works like this:
 
 1. Depot trucks and local drivers return if their trips are complete.
-2. Warehouses publish compressed demand reports and market signals.
-3. The central orchestrator submits an action.
-4. Depot replenishments consume depot stock and trucks.
-5. Approved offer matches become proposed warehouse transfers.
-6. Warehouses accept or reject transfers based on hidden local incentives.
-7. Local warehouses fulfill their own local customer orders.
-8. Missed or late demand is penalized.
-9. Reward components and diagnostics are returned.
+2. Previously purchased depot inventory arrives if its lead time has elapsed.
+3. Warehouses publish compressed demand reports and market signals.
+4. The central orchestrator submits an action.
+5. Depot procurements buy future central stock.
+6. Depot replenishments consume depot stock and trucks.
+7. Approved offer matches become proposed warehouse transfers.
+8. Warehouses accept or reject transfers based on hidden local incentives.
+9. Local warehouses fulfill their own local customer orders.
+10. Missed or late demand is penalized.
+11. Reward components and diagnostics are returned.
 
 ## Observation
 
 The central policy receives structured JSON containing:
 
-- `central_depot`: depot inventory, available trucks, returning trucks, replenishment cap
+- `central_depot`: depot inventory, available trucks, returning trucks, inbound purchases, shipment cap, procurement cap
 - `warehouses`: inventory, driver availability, route costs, public message
 - `demand_reports`: compressed truthful reports of requested, forecast, missed, and at-risk units
 - `market_signals`: inventory offers and requests
@@ -135,6 +138,12 @@ The central orchestrator returns strict JSON:
 
 ```json
 {
+  "central_procurements": [
+    {
+      "sku": "insulin_pack",
+      "units": 3
+    }
+  ],
   "central_replenishments": [
     {
       "to_warehouse": "north",
@@ -165,7 +174,7 @@ The central orchestrator returns strict JSON:
 }
 ```
 
-The most important actions today are `central_replenishments`, `inventory_transfers`, and `offer_matches`.
+The most important actions today are `central_procurements`, `central_replenishments`, `inventory_transfers`, and `offer_matches`.
 
 ## Reward
 
@@ -177,8 +186,10 @@ step_reward =
 + accepted_trade_bonus
 + coalition_bonus
 + central_replenishment_bonus
++ strategic_procurement_bonus
 + priority_alignment_bonus
 - delivery_cost
+- central_procurement_cost
 - central_replenishment_cost
 - transfer_cost
 - stockout_penalty

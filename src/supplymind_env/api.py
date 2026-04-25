@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import json
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse
 
 from .environment import V3SupplyMindEnv
 from .models import V3Action
 from .policies import heuristic_policy
+from .subagent import SUBAGENT_SYSTEM_PROMPT, build_subagent_prompt, prompted_subagent_policy
 from .task_adapter import PUBLIC_TASK_IDS, is_public_task_id
 
 
@@ -43,6 +45,27 @@ def create_app() -> FastAPI:
     @app.get("/heuristic-action")
     def heuristic_action() -> dict:
         return heuristic_policy(env.state()).model_dump(mode="json")
+
+    @app.get("/subagent-prompt")
+    def subagent_prompt() -> dict:
+        observation = env.state()
+        return {
+            "system_prompt": SUBAGENT_SYSTEM_PROMPT,
+            "messages": build_subagent_prompt(observation),
+        }
+
+    @app.get("/subagent-action")
+    def subagent_action() -> dict:
+        return prompted_subagent_policy(env.state()).model_dump(mode="json")
+
+    @app.get("/blackbox-trace")
+    def blackbox_trace() -> dict:
+        from pathlib import Path
+
+        trace_path = Path(__file__).resolve().parents[2] / "results" / "blackbox_codex_subagent_episode.json"
+        if not trace_path.exists():
+            raise HTTPException(status_code=404, detail="No black-box subagent trace has been saved yet.")
+        return json.loads(trace_path.read_text(encoding="utf-8-sig"))
 
     return app
 

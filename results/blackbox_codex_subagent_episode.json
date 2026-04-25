@@ -1,0 +1,2420 @@
+﻿{
+    "task":  "scarcity_negotiation",
+    "seed":  24680,
+    "reset_observation_summary":  {
+                                      "round_index":  0,
+                                      "remaining_rounds":  30,
+                                      "depot_inventory":  {
+                                                              "fresh_milk":  7,
+                                                              "rice_bag_5kg":  8,
+                                                              "insulin_pack":  7,
+                                                              "usb_c_charger":  3
+                                                          },
+                                      "depot_trucks_available":  1,
+                                      "inbound_procurements":  [
+
+                                                               ],
+                                      "demand_reports":  [
+                                                             "west:fresh_milk req=0 risk=0 miss=0 fc=4 urg=1",
+                                                             "central:fresh_milk req=0 risk=0 miss=0 fc=5 urg=1"
+                                                         ],
+                                      "market_requests":  [
+                                                              "east:rice_bag_5kgx1u1",
+                                                              "west:fresh_milkx4u2",
+                                                              "central:fresh_milkx4u2",
+                                                              "central:usb_c_chargerx1u1"
+                                                          ],
+                                      "market_offers":  [
+                                                            "north:fresh_milkx4@3.38",
+                                                            "north:rice_bag_5kgx4@2.54",
+                                                            "east:insulin_packx4@8.01",
+                                                            "east:usb_c_chargerx3@10.3",
+                                                            "south:rice_bag_5kgx4@3.73",
+                                                            "west:insulin_packx4@8.71",
+                                                            "west:usb_c_chargerx2@11.19",
+                                                            "central:rice_bag_5kgx4@4.63"
+                                                        ],
+                                      "pressure":  "Highest visible pressure: west needs 0 fresh_milk."
+                                  },
+    "rounds":  [
+                   {
+                       "round_index":  0,
+                       "observation_summary":  {
+                                                   "round_index":  0,
+                                                   "remaining_rounds":  30,
+                                                   "depot_inventory":  {
+                                                                           "fresh_milk":  7,
+                                                                           "rice_bag_5kg":  8,
+                                                                           "insulin_pack":  7,
+                                                                           "usb_c_charger":  3
+                                                                       },
+                                                   "depot_trucks_available":  1,
+                                                   "inbound_procurements":  [
+
+                                                                            ],
+                                                   "demand_reports":  [
+                                                                          "west:fresh_milk req=0 risk=0 miss=0 fc=4 urg=1",
+                                                                          "central:fresh_milk req=0 risk=0 miss=0 fc=5 urg=1"
+                                                                      ],
+                                                   "market_requests":  [
+                                                                           "east:rice_bag_5kgx1u1",
+                                                                           "west:fresh_milkx4u2",
+                                                                           "central:fresh_milkx4u2",
+                                                                           "central:usb_c_chargerx1u1"
+                                                                       ],
+                                                   "market_offers":  [
+                                                                         "north:fresh_milkx0@3.38",
+                                                                         "north:rice_bag_5kgx3@2.54",
+                                                                         "east:insulin_packx4@8.01",
+                                                                         "east:usb_c_chargerx2@10.3",
+                                                                         "south:rice_bag_5kgx4@3.73",
+                                                                         "west:insulin_packx4@8.71",
+                                                                         "west:usb_c_chargerx2@11.19",
+                                                                         "central:rice_bag_5kgx4@4.63"
+                                                                     ],
+                                                   "pressure":  "Highest visible pressure: west needs 0 fresh_milk."
+                                               },
+                       "action":  {
+                                      "offer_matches":  [
+                                                            {
+                                                                "offer_signal_id":  "north:offer:fresh_milk",
+                                                                "request_signal_id":  "central:request:fresh_milk",
+                                                                "units":  4
+                                                            },
+                                                            {
+                                                                "offer_signal_id":  "east:offer:usb_c_charger",
+                                                                "request_signal_id":  "central:request:usb_c_charger",
+                                                                "units":  1
+                                                            },
+                                                            {
+                                                                "offer_signal_id":  "north:offer:rice_bag_5kg",
+                                                                "request_signal_id":  "east:request:rice_bag_5kg",
+                                                                "units":  1
+                                                            }
+                                                        ],
+                                      "central_replenishments":  [
+                                                                     {
+                                                                         "to_warehouse":  "central",
+                                                                         "sku":  "fresh_milk",
+                                                                         "units":  6
+                                                                     }
+                                                                 ],
+                                      "central_procurements":  [
+                                                                   {
+                                                                       "sku":  "fresh_milk",
+                                                                       "units":  3
+                                                                   }
+                                                               ]
+                                  },
+                       "reasoning":  "matched 4 fresh_milk from north to central; matched 1 usb_c_charger from east to central; matched 1 rice_bag_5kg from north to east; sent depot fresh_milkx6 to highest visible pressure central; procured fresh_milk x3 for repeated/forecast pressure",
+                       "reward":  -15.7,
+                       "cumulative_reward":  -15.7,
+                       "components":  {
+                                          "central_procurement_cost":  -12.0,
+                                          "central_replenishment_cost":  -13.2,
+                                          "central_replenishment_bonus":  1.5,
+                                          "transfer_cost":  -12.75,
+                                          "accepted_trade_bonus":  1.2,
+                                          "fulfilled_order_value":  33.0,
+                                          "delivery_cost":  -3.0,
+                                          "holding_cost":  -6.05,
+                                          "waste_penalty":  -6.9,
+                                          "coalition_bonus":  2.5
+                                      },
+                       "events":  [
+                                      "central bought 3 fresh_milk for depot arrival at round 2",
+                                      "central depot sent 6 fresh_milk to central",
+                                      "central approved 4 fresh_milk from north to central via transfer truck capacity",
+                                      "central approved 1 usb_c_charger from east to central via transfer truck capacity",
+                                      "central approved 1 rice_bag_5kg from north to east via transfer truck capacity",
+                                      "north transferred 4 fresh_milk to central",
+                                      "east transferred 1 usb_c_charger to central",
+                                      "north transferred 1 rice_bag_5kg to east",
+                                      "south local agent fulfilled 1 rice_bag_5kg",
+                                      "west local agent fulfilled 2 rice_bag_5kg"
+                                  ],
+                       "negotiation_trace":  [
+                                                 {
+                                                     "actor":  "north",
+                                                     "proposal_type":  "inventory_transfer",
+                                                     "status":  "accepted",
+                                                     "summary":  "accepted fair compensation",
+                                                     "local_utility_delta":  13.52
+                                                 },
+                                                 {
+                                                     "actor":  "east",
+                                                     "proposal_type":  "inventory_transfer",
+                                                     "status":  "accepted",
+                                                     "summary":  "accepted fair compensation",
+                                                     "local_utility_delta":  10.3
+                                                 },
+                                                 {
+                                                     "actor":  "north",
+                                                     "proposal_type":  "inventory_transfer",
+                                                     "status":  "accepted",
+                                                     "summary":  "accepted fair compensation",
+                                                     "local_utility_delta":  2.54
+                                                 }
+                                             ],
+                       "done":  false
+                   },
+                   {
+                       "round_index":  1,
+                       "observation_summary":  {
+                                                   "round_index":  1,
+                                                   "remaining_rounds":  29,
+                                                   "depot_inventory":  {
+                                                                           "fresh_milk":  1,
+                                                                           "rice_bag_5kg":  8,
+                                                                           "insulin_pack":  7,
+                                                                           "usb_c_charger":  3
+                                                                       },
+                                                   "depot_trucks_available":  0,
+                                                   "inbound_procurements":  [
+                                                                                {
+                                                                                    "arrival_round":  2,
+                                                                                    "sku":  "fresh_milk",
+                                                                                    "units":  3
+                                                                                }
+                                                                            ],
+                                                   "demand_reports":  [
+                                                                          "west:fresh_milk req=2 risk=0 miss=0 fc=4 urg=2"
+                                                                      ],
+                                                   "market_requests":  [
+                                                                           "west:fresh_milkx4u2",
+                                                                           "west:rice_bag_5kgx1u1"
+                                                                       ],
+                                                   "market_offers":  [
+                                                                         "north:rice_bag_5kgx2@2.5",
+                                                                         "east:insulin_packx4@7.95",
+                                                                         "east:usb_c_chargerx2@10.22",
+                                                                         "south:rice_bag_5kgx3@3.73",
+                                                                         "west:insulin_packx4@8.71",
+                                                                         "west:usb_c_chargerx2@11.19",
+                                                                         "central:fresh_milkx0@6.17",
+                                                                         "central:rice_bag_5kgx4@4.63"
+                                                                     ],
+                                                   "pressure":  "Highest visible pressure: west needs 2 fresh_milk."
+                                               },
+                       "action":  {
+                                      "offer_matches":  [
+                                                            {
+                                                                "offer_signal_id":  "central:offer:fresh_milk",
+                                                                "request_signal_id":  "west:request:fresh_milk",
+                                                                "units":  4
+                                                            },
+                                                            {
+                                                                "offer_signal_id":  "north:offer:rice_bag_5kg",
+                                                                "request_signal_id":  "west:request:rice_bag_5kg",
+                                                                "units":  1
+                                                            }
+                                                        ],
+                                      "central_procurements":  [
+                                                                   {
+                                                                       "sku":  "fresh_milk",
+                                                                       "units":  6
+                                                                   }
+                                                               ]
+                                  },
+                       "reasoning":  "matched 4 fresh_milk from central to west; matched 1 rice_bag_5kg from north to west; procured fresh_milk x6 for repeated/forecast pressure",
+                       "reward":  -10.34,
+                       "cumulative_reward":  -26.04,
+                       "components":  {
+                                          "central_procurement_cost":  -24.0,
+                                          "strategic_procurement_bonus":  2.1,
+                                          "transfer_cost":  -7.5,
+                                          "accepted_trade_bonus":  0.8,
+                                          "fulfilled_order_value":  26.0,
+                                          "delivery_cost":  -2.0,
+                                          "holding_cost":  -5.94,
+                                          "waste_penalty":  -2.3,
+                                          "coalition_bonus":  2.5
+                                      },
+                       "events":  [
+                                      "central bought 6 fresh_milk for depot arrival at round 3",
+                                      "central approved 4 fresh_milk from central to west via transfer truck capacity",
+                                      "central approved 1 rice_bag_5kg from north to west via transfer truck capacity",
+                                      "central transferred 4 fresh_milk to west",
+                                      "north transferred 1 rice_bag_5kg to west",
+                                      "west local agent fulfilled 2 fresh_milk"
+                                  ],
+                       "negotiation_trace":  [
+                                                 {
+                                                     "actor":  "central",
+                                                     "proposal_type":  "inventory_transfer",
+                                                     "status":  "accepted",
+                                                     "summary":  "accepted fair compensation",
+                                                     "local_utility_delta":  24.68
+                                                 },
+                                                 {
+                                                     "actor":  "north",
+                                                     "proposal_type":  "inventory_transfer",
+                                                     "status":  "accepted",
+                                                     "summary":  "accepted fair compensation",
+                                                     "local_utility_delta":  2.5
+                                                 }
+                                             ],
+                       "done":  false
+                   },
+                   {
+                       "round_index":  2,
+                       "observation_summary":  {
+                                                   "round_index":  2,
+                                                   "remaining_rounds":  28,
+                                                   "depot_inventory":  {
+                                                                           "fresh_milk":  1,
+                                                                           "rice_bag_5kg":  8,
+                                                                           "insulin_pack":  7,
+                                                                           "usb_c_charger":  3
+                                                                       },
+                                                   "depot_trucks_available":  1,
+                                                   "inbound_procurements":  [
+                                                                                {
+                                                                                    "arrival_round":  2,
+                                                                                    "sku":  "fresh_milk",
+                                                                                    "units":  3
+                                                                                },
+                                                                                {
+                                                                                    "arrival_round":  3,
+                                                                                    "sku":  "fresh_milk",
+                                                                                    "units":  6
+                                                                                }
+                                                                            ],
+                                                   "demand_reports":  [
+
+                                                                      ],
+                                                   "market_requests":  [
+                                                                           "west:fresh_milkx3u2"
+                                                                       ],
+                                                   "market_offers":  [
+                                                                         "north:rice_bag_5kgx2@2.48",
+                                                                         "east:insulin_packx4@7.95",
+                                                                         "east:usb_c_chargerx2@10.22",
+                                                                         "south:rice_bag_5kgx3@3.73",
+                                                                         "west:insulin_packx4@8.71",
+                                                                         "west:usb_c_chargerx2@11.19",
+                                                                         "central:fresh_milkx0@6.12",
+                                                                         "central:rice_bag_5kgx4@4.59"
+                                                                     ],
+                                                   "pressure":  "No aggregated warehouse demand pressure is visible."
+                                               },
+                       "action":  {
+                                      "offer_matches":  [
+                                                            {
+                                                                "offer_signal_id":  "central:offer:fresh_milk",
+                                                                "request_signal_id":  "west:request:fresh_milk",
+                                                                "units":  2
+                                                            }
+                                                        ],
+                                      "central_replenishments":  [
+                                                                     {
+                                                                         "to_warehouse":  "west",
+                                                                         "sku":  "fresh_milk",
+                                                                         "units":  1
+                                                                     }
+                                                                 ]
+                                  },
+                       "reasoning":  "matched 2 fresh_milk from central to west; sent depot fresh_milkx1 to highest visible pressure west",
+                       "reward":  14.3,
+                       "cumulative_reward":  -11.74,
+                       "components":  {
+                                          "central_replenishment_cost":  -2.2,
+                                          "central_replenishment_bonus":  0.25,
+                                          "transfer_cost":  -2.7,
+                                          "accepted_trade_bonus":  0.4,
+                                          "fulfilled_order_value":  33.0,
+                                          "delivery_cost":  -3.0,
+                                          "holding_cost":  -5.83,
+                                          "fairness_penalty":  -8.12,
+                                          "coalition_bonus":  2.5
+                                      },
+                       "events":  [
+                                      "central depot sent 1 fresh_milk to west",
+                                      "central approved 2 fresh_milk from central to west via transfer truck capacity",
+                                      "central transferred 2 fresh_milk to west",
+                                      "west local agent fulfilled 3 rice_bag_5kg"
+                                  ],
+                       "negotiation_trace":  [
+                                                 {
+                                                     "actor":  "central",
+                                                     "proposal_type":  "inventory_transfer",
+                                                     "status":  "accepted",
+                                                     "summary":  "accepted fair compensation",
+                                                     "local_utility_delta":  12.24
+                                                 }
+                                             ],
+                       "done":  false
+                   },
+                   {
+                       "round_index":  3,
+                       "observation_summary":  {
+                                                   "round_index":  3,
+                                                   "remaining_rounds":  27,
+                                                   "depot_inventory":  {
+                                                                           "fresh_milk":  3,
+                                                                           "rice_bag_5kg":  8,
+                                                                           "insulin_pack":  7,
+                                                                           "usb_c_charger":  3
+                                                                       },
+                                                   "depot_trucks_available":  0,
+                                                   "inbound_procurements":  [
+                                                                                {
+                                                                                    "arrival_round":  3,
+                                                                                    "sku":  "fresh_milk",
+                                                                                    "units":  6
+                                                                                }
+                                                                            ],
+                                                   "demand_reports":  [
+
+                                                                      ],
+                                                   "market_requests":  [
+                                                                           "west:rice_bag_5kgx3u2"
+                                                                       ],
+                                                   "market_offers":  [
+                                                                         "north:rice_bag_5kgx0@2.48",
+                                                                         "east:insulin_packx4@7.95",
+                                                                         "east:usb_c_chargerx2@10.22",
+                                                                         "south:rice_bag_5kgx3@3.73",
+                                                                         "west:insulin_packx4@8.71",
+                                                                         "west:usb_c_chargerx2@11.19",
+                                                                         "central:rice_bag_5kgx4@4.56"
+                                                                     ],
+                                                   "pressure":  "No aggregated warehouse demand pressure is visible."
+                                               },
+                       "action":  {
+                                      "offer_matches":  [
+                                                            {
+                                                                "offer_signal_id":  "north:offer:rice_bag_5kg",
+                                                                "request_signal_id":  "west:request:rice_bag_5kg",
+                                                                "units":  2
+                                                            }
+                                                        ]
+                                  },
+                       "reasoning":  "matched 2 rice_bag_5kg from north to west",
+                       "reward":  53.811,
+                       "cumulative_reward":  42.071,
+                       "components":  {
+                                          "transfer_cost":  -4.2,
+                                          "accepted_trade_bonus":  0.4,
+                                          "fulfilled_order_value":  70.0,
+                                          "delivery_cost":  -5.0,
+                                          "holding_cost":  -5.555,
+                                          "fairness_penalty":  -4.334,
+                                          "coalition_bonus":  2.5
+                                      },
+                       "events":  [
+                                      "central approved 2 rice_bag_5kg from north to west via transfer truck capacity",
+                                      "north transferred 2 rice_bag_5kg to west",
+                                      "east local agent fulfilled 1 insulin_pack",
+                                      "south local agent fulfilled 2 rice_bag_5kg",
+                                      "central local agent fulfilled 2 fresh_milk"
+                                  ],
+                       "negotiation_trace":  [
+                                                 {
+                                                     "actor":  "north",
+                                                     "proposal_type":  "inventory_transfer",
+                                                     "status":  "accepted",
+                                                     "summary":  "accepted fair compensation",
+                                                     "local_utility_delta":  4.96
+                                                 }
+                                             ],
+                       "done":  false
+                   },
+                   {
+                       "round_index":  4,
+                       "observation_summary":  {
+                                                   "round_index":  4,
+                                                   "remaining_rounds":  26,
+                                                   "depot_inventory":  {
+                                                                           "fresh_milk":  9,
+                                                                           "rice_bag_5kg":  8,
+                                                                           "insulin_pack":  7,
+                                                                           "usb_c_charger":  3
+                                                                       },
+                                                   "depot_trucks_available":  1,
+                                                   "inbound_procurements":  [
+
+                                                                            ],
+                                                   "demand_reports":  [
+                                                                          "south:fresh_milk req=4 risk=0 miss=0 fc=5 urg=1"
+                                                                      ],
+                                                   "market_requests":  [
+                                                                           "west:rice_bag_5kgx1u1",
+                                                                           "central:fresh_milkx2u2"
+                                                                       ],
+                                                   "market_offers":  [
+                                                                         "east:insulin_packx3@7.95",
+                                                                         "east:usb_c_chargerx2@10.22",
+                                                                         "west:insulin_packx4@8.71",
+                                                                         "west:usb_c_chargerx2@11.19",
+                                                                         "central:rice_bag_5kgx3@4.56"
+                                                                     ],
+                                                   "pressure":  "Highest visible pressure: south needs 4 fresh_milk."
+                                               },
+                       "action":  {
+                                      "offer_matches":  [
+                                                            {
+                                                                "offer_signal_id":  "central:offer:rice_bag_5kg",
+                                                                "request_signal_id":  "west:request:rice_bag_5kg",
+                                                                "units":  1
+                                                            }
+                                                        ],
+                                      "central_replenishments":  [
+                                                                     {
+                                                                         "to_warehouse":  "south",
+                                                                         "sku":  "fresh_milk",
+                                                                         "units":  6
+                                                                     }
+                                                                 ]
+                                  },
+                       "reasoning":  "matched 1 rice_bag_5kg from central to west; sent depot fresh_milkx6 to highest visible pressure south",
+                       "reward":  13.496,
+                       "cumulative_reward":  55.566,
+                       "components":  {
+                                          "central_replenishment_cost":  -13.2,
+                                          "central_replenishment_bonus":  1.5,
+                                          "transfer_cost":  -1.35,
+                                          "accepted_trade_bonus":  0.4,
+                                          "fulfilled_order_value":  39.0,
+                                          "delivery_cost":  -3.0,
+                                          "holding_cost":  -5.72,
+                                          "waste_penalty":  -2.3,
+                                          "fairness_penalty":  -4.334,
+                                          "coalition_bonus":  2.5
+                                      },
+                       "events":  [
+                                      "central depot sent 6 fresh_milk to south",
+                                      "central approved 1 rice_bag_5kg from central to west via transfer truck capacity",
+                                      "central transferred 1 rice_bag_5kg to west",
+                                      "south local agent fulfilled 3 fresh_milk"
+                                  ],
+                       "negotiation_trace":  [
+                                                 {
+                                                     "actor":  "central",
+                                                     "proposal_type":  "inventory_transfer",
+                                                     "status":  "accepted",
+                                                     "summary":  "accepted fair compensation",
+                                                     "local_utility_delta":  4.56
+                                                 }
+                                             ],
+                       "done":  false
+                   },
+                   {
+                       "round_index":  5,
+                       "observation_summary":  {
+                                                   "round_index":  5,
+                                                   "remaining_rounds":  25,
+                                                   "depot_inventory":  {
+                                                                           "fresh_milk":  3,
+                                                                           "rice_bag_5kg":  8,
+                                                                           "insulin_pack":  7,
+                                                                           "usb_c_charger":  3
+                                                                       },
+                                                   "depot_trucks_available":  0,
+                                                   "inbound_procurements":  [
+
+                                                                            ],
+                                                   "demand_reports":  [
+                                                                          "south:fresh_milk req=1 risk=0 miss=1 fc=5 urg=3",
+                                                                          "south:rice_bag_5kg req=3 risk=0 miss=3 fc=3 urg=3",
+                                                                          "central:fresh_milk req=2 risk=0 miss=0 fc=5 urg=1"
+                                                                      ],
+                                                   "market_requests":  [
+                                                                           "central:fresh_milkx2u2"
+                                                                       ],
+                                                   "market_offers":  [
+                                                                         "east:insulin_packx3@7.95",
+                                                                         "east:usb_c_chargerx2@10.22",
+                                                                         "south:fresh_milkx1@4.97",
+                                                                         "west:insulin_packx4@8.71",
+                                                                         "west:usb_c_chargerx2@11.19",
+                                                                         "central:rice_bag_5kgx4@4.52"
+                                                                     ],
+                                                   "pressure":  "2 urgent warehouse demand report(s) need allocation."
+                                               },
+                       "action":  {
+                                      "offer_matches":  [
+                                                            {
+                                                                "offer_signal_id":  "south:offer:fresh_milk",
+                                                                "request_signal_id":  "central:request:fresh_milk",
+                                                                "units":  2
+                                                            }
+                                                        ],
+                                      "central_procurements":  [
+                                                                   {
+                                                                       "sku":  "fresh_milk",
+                                                                       "units":  6
+                                                                   }
+                                                               ]
+                                  },
+                       "reasoning":  "matched 2 fresh_milk from south to central; procured fresh_milk x6 for repeated/forecast pressure",
+                       "reward":  -3.524,
+                       "cumulative_reward":  52.042,
+                       "components":  {
+                                          "central_procurement_cost":  -24.0,
+                                          "transfer_cost":  -4.2,
+                                          "accepted_trade_bonus":  0.4,
+                                          "fulfilled_order_value":  39.0,
+                                          "delivery_cost":  -3.0,
+                                          "holding_cost":  -5.555,
+                                          "fairness_penalty":  -8.669,
+                                          "coalition_bonus":  2.5
+                                      },
+                       "events":  [
+                                      "central bought 6 fresh_milk for depot arrival at round 7",
+                                      "central approved 2 fresh_milk from south to central via transfer truck capacity",
+                                      "south transferred 2 fresh_milk to central",
+                                      "south local agent fulfilled 1 fresh_milk",
+                                      "central local agent fulfilled 2 fresh_milk"
+                                  ],
+                       "negotiation_trace":  [
+                                                 {
+                                                     "actor":  "south",
+                                                     "proposal_type":  "inventory_transfer",
+                                                     "status":  "accepted",
+                                                     "summary":  "accepted fair compensation",
+                                                     "local_utility_delta":  9.94
+                                                 }
+                                             ],
+                       "done":  false
+                   },
+                   {
+                       "round_index":  6,
+                       "observation_summary":  {
+                                                   "round_index":  6,
+                                                   "remaining_rounds":  24,
+                                                   "depot_inventory":  {
+                                                                           "fresh_milk":  3,
+                                                                           "rice_bag_5kg":  8,
+                                                                           "insulin_pack":  7,
+                                                                           "usb_c_charger":  3
+                                                                       },
+                                                   "depot_trucks_available":  1,
+                                                   "inbound_procurements":  [
+                                                                                {
+                                                                                    "arrival_round":  7,
+                                                                                    "sku":  "fresh_milk",
+                                                                                    "units":  6
+                                                                                }
+                                                                            ],
+                                                   "demand_reports":  [
+                                                                          "south:rice_bag_5kg req=3 risk=3 miss=3 fc=3 urg=3"
+                                                                      ],
+                                                   "market_requests":  [
+                                                                           "central:fresh_milkx2u2"
+                                                                       ],
+                                                   "market_offers":  [
+                                                                         "east:insulin_packx3@7.95",
+                                                                         "east:usb_c_chargerx2@10.22",
+                                                                         "west:insulin_packx4@8.71",
+                                                                         "west:usb_c_chargerx2@11.19",
+                                                                         "central:rice_bag_5kgx4@4.52"
+                                                                     ],
+                                                   "pressure":  "1 urgent warehouse demand report(s) need allocation."
+                                               },
+                       "action":  {
+                                      "central_replenishments":  [
+                                                                     {
+                                                                         "to_warehouse":  "south",
+                                                                         "sku":  "rice_bag_5kg",
+                                                                         "units":  6
+                                                                     }
+                                                                 ]
+                                  },
+                       "reasoning":  "sent depot rice_bag_5kgx6 to highest visible pressure south",
+                       "reward":  37.141,
+                       "cumulative_reward":  89.184,
+                       "components":  {
+                                          "central_replenishment_cost":  -13.2,
+                                          "central_replenishment_bonus":  1.5,
+                                          "fulfilled_order_value":  81.0,
+                                          "delivery_cost":  -5.0,
+                                          "holding_cost":  -5.61,
+                                          "fairness_penalty":  -21.549
+                                      },
+                       "events":  [
+                                      "central depot sent 6 rice_bag_5kg to south",
+                                      "south local agent fulfilled 3 rice_bag_5kg",
+                                      "central local agent fulfilled 2 usb_c_charger"
+                                  ],
+                       "negotiation_trace":  [
+
+                                             ],
+                       "done":  false
+                   },
+                   {
+                       "round_index":  7,
+                       "observation_summary":  {
+                                                   "round_index":  7,
+                                                   "remaining_rounds":  23,
+                                                   "depot_inventory":  {
+                                                                           "fresh_milk":  3,
+                                                                           "rice_bag_5kg":  2,
+                                                                           "insulin_pack":  7,
+                                                                           "usb_c_charger":  3
+                                                                       },
+                                                   "depot_trucks_available":  0,
+                                                   "inbound_procurements":  [
+                                                                                {
+                                                                                    "arrival_round":  7,
+                                                                                    "sku":  "fresh_milk",
+                                                                                    "units":  6
+                                                                                }
+                                                                            ],
+                                                   "demand_reports":  [
+
+                                                                      ],
+                                                   "market_requests":  [
+                                                                           "central:fresh_milkx2u2",
+                                                                           "central:usb_c_chargerx2u2"
+                                                                       ],
+                                                   "market_offers":  [
+                                                                         "east:insulin_packx3@7.95",
+                                                                         "east:usb_c_chargerx0@10.22",
+                                                                         "south:rice_bag_5kgx4@3.7",
+                                                                         "west:insulin_packx4@8.71",
+                                                                         "west:usb_c_chargerx2@11.19",
+                                                                         "central:rice_bag_5kgx4@4.52"
+                                                                     ],
+                                                   "pressure":  "No aggregated warehouse demand pressure is visible."
+                                               },
+                       "action":  {
+                                      "offer_matches":  [
+                                                            {
+                                                                "offer_signal_id":  "east:offer:usb_c_charger",
+                                                                "request_signal_id":  "central:request:usb_c_charger",
+                                                                "units":  2
+                                                            }
+                                                        ]
+                                  },
+                       "reasoning":  "matched 2 usb_c_charger from east to central",
+                       "reward":  32.512,
+                       "cumulative_reward":  121.696,
+                       "components":  {
+                                          "transfer_cost":  -4.2,
+                                          "accepted_trade_bonus":  0.4,
+                                          "fulfilled_order_value":  59.0,
+                                          "delivery_cost":  -4.0,
+                                          "holding_cost":  -5.39,
+                                          "fairness_penalty":  -15.798,
+                                          "coalition_bonus":  2.5
+                                      },
+                       "events":  [
+                                      "central approved 2 usb_c_charger from east to central via transfer truck capacity",
+                                      "east transferred 2 usb_c_charger to central",
+                                      "north local agent fulfilled 2 fresh_milk",
+                                      "east local agent fulfilled 1 rice_bag_5kg",
+                                      "south local agent fulfilled 1 insulin_pack"
+                                  ],
+                       "negotiation_trace":  [
+                                                 {
+                                                     "actor":  "east",
+                                                     "proposal_type":  "inventory_transfer",
+                                                     "status":  "accepted",
+                                                     "summary":  "accepted fair compensation",
+                                                     "local_utility_delta":  20.44
+                                                 }
+                                             ],
+                       "done":  false
+                   },
+                   {
+                       "round_index":  8,
+                       "observation_summary":  {
+                                                   "round_index":  8,
+                                                   "remaining_rounds":  22,
+                                                   "depot_inventory":  {
+                                                                           "fresh_milk":  9,
+                                                                           "rice_bag_5kg":  2,
+                                                                           "insulin_pack":  7,
+                                                                           "usb_c_charger":  3
+                                                                       },
+                                                   "depot_trucks_available":  1,
+                                                   "inbound_procurements":  [
+
+                                                                            ],
+                                                   "demand_reports":  [
+
+                                                                      ],
+                                                   "market_requests":  [
+                                                                           "north:fresh_milkx2u2",
+                                                                           "east:rice_bag_5kgx1u1",
+                                                                           "south:insulin_packx1u1",
+                                                                           "central:fresh_milkx2u2"
+                                                                       ],
+                                                   "market_offers":  [
+                                                                         "east:insulin_packx2@7.89",
+                                                                         "south:rice_bag_5kgx3@3.7",
+                                                                         "west:insulin_packx4@8.71",
+                                                                         "west:usb_c_chargerx2@11.19",
+                                                                         "central:rice_bag_5kgx4@4.52"
+                                                                     ],
+                                                   "pressure":  "No aggregated warehouse demand pressure is visible."
+                                               },
+                       "action":  {
+                                      "offer_matches":  [
+                                                            {
+                                                                "offer_signal_id":  "south:offer:rice_bag_5kg",
+                                                                "request_signal_id":  "east:request:rice_bag_5kg",
+                                                                "units":  1
+                                                            },
+                                                            {
+                                                                "offer_signal_id":  "east:offer:insulin_pack",
+                                                                "request_signal_id":  "south:request:insulin_pack",
+                                                                "units":  1
+                                                            }
+                                                        ],
+                                      "central_replenishments":  [
+                                                                     {
+                                                                         "to_warehouse":  "central",
+                                                                         "sku":  "fresh_milk",
+                                                                         "units":  4
+                                                                     }
+                                                                 ]
+                                  },
+                       "reasoning":  "matched 1 rice_bag_5kg from south to east; matched 1 insulin_pack from east to south; sent depot fresh_milkx4 to highest visible pressure central",
+                       "reward":  3.776,
+                       "cumulative_reward":  125.472,
+                       "components":  {
+                                          "central_replenishment_cost":  -8.8,
+                                          "central_replenishment_bonus":  1.0,
+                                          "transfer_cost":  -3.45,
+                                          "accepted_trade_bonus":  0.8,
+                                          "fulfilled_order_value":  35.0,
+                                          "delivery_cost":  -2.0,
+                                          "holding_cost":  -5.5,
+                                          "waste_penalty":  -2.3,
+                                          "fairness_penalty":  -13.474,
+                                          "coalition_bonus":  2.5
+                                      },
+                       "events":  [
+                                      "central depot sent 4 fresh_milk to central",
+                                      "central approved 1 rice_bag_5kg from south to east via transfer truck capacity",
+                                      "central approved 1 insulin_pack from east to south via transfer truck capacity",
+                                      "south transferred 1 rice_bag_5kg to east",
+                                      "east transferred 1 insulin_pack to south",
+                                      "north local agent fulfilled 1 fresh_milk",
+                                      "west local agent fulfilled 1 insulin_pack"
+                                  ],
+                       "negotiation_trace":  [
+                                                 {
+                                                     "actor":  "south",
+                                                     "proposal_type":  "inventory_transfer",
+                                                     "status":  "accepted",
+                                                     "summary":  "accepted fair compensation",
+                                                     "local_utility_delta":  3.7
+                                                 },
+                                                 {
+                                                     "actor":  "east",
+                                                     "proposal_type":  "inventory_transfer",
+                                                     "status":  "accepted",
+                                                     "summary":  "accepted fair compensation",
+                                                     "local_utility_delta":  7.89
+                                                 }
+                                             ],
+                       "done":  false
+                   },
+                   {
+                       "round_index":  9,
+                       "observation_summary":  {
+                                                   "round_index":  9,
+                                                   "remaining_rounds":  21,
+                                                   "depot_inventory":  {
+                                                                           "fresh_milk":  5,
+                                                                           "rice_bag_5kg":  2,
+                                                                           "insulin_pack":  7,
+                                                                           "usb_c_charger":  3
+                                                                       },
+                                                   "depot_trucks_available":  0,
+                                                   "inbound_procurements":  [
+
+                                                                            ],
+                                                   "demand_reports":  [
+                                                                          "west:fresh_milk req=5 risk=0 miss=0 fc=4 urg=1"
+                                                                      ],
+                                                   "market_requests":  [
+                                                                           "north:fresh_milkx3u2"
+                                                                       ],
+                                                   "market_offers":  [
+                                                                         "east:insulin_packx2@7.83",
+                                                                         "south:rice_bag_5kgx3@3.67",
+                                                                         "west:insulin_packx3@8.71",
+                                                                         "west:usb_c_chargerx2@11.19",
+                                                                         "central:fresh_milkx0@6.03",
+                                                                         "central:rice_bag_5kgx4@4.52"
+                                                                     ],
+                                                   "pressure":  "Highest visible pressure: west needs 5 fresh_milk."
+                                               },
+                       "action":  {
+                                      "offer_matches":  [
+                                                            {
+                                                                "offer_signal_id":  "central:offer:fresh_milk",
+                                                                "request_signal_id":  "north:request:fresh_milk",
+                                                                "units":  2
+                                                            }
+                                                        ],
+                                      "central_procurements":  [
+                                                                   {
+                                                                       "sku":  "fresh_milk",
+                                                                       "units":  5
+                                                                   }
+                                                               ]
+                                  },
+                       "reasoning":  "matched 2 fresh_milk from central to north; procured fresh_milk x5 for repeated/forecast pressure",
+                       "reward":  -3.831,
+                       "cumulative_reward":  121.642,
+                       "components":  {
+                                          "central_procurement_cost":  -20.0,
+                                          "transfer_cost":  -2.55,
+                                          "accepted_trade_bonus":  0.4,
+                                          "fulfilled_order_value":  39.0,
+                                          "delivery_cost":  -3.0,
+                                          "holding_cost":  -5.335,
+                                          "fairness_penalty":  -14.846,
+                                          "coalition_bonus":  2.5
+                                      },
+                       "events":  [
+                                      "central bought 5 fresh_milk for depot arrival at round 11",
+                                      "central approved 2 fresh_milk from central to north via transfer truck capacity",
+                                      "central transferred 2 fresh_milk to north",
+                                      "west local agent fulfilled 3 fresh_milk"
+                                  ],
+                       "negotiation_trace":  [
+                                                 {
+                                                     "actor":  "central",
+                                                     "proposal_type":  "inventory_transfer",
+                                                     "status":  "accepted",
+                                                     "summary":  "accepted fair compensation",
+                                                     "local_utility_delta":  12.06
+                                                 }
+                                             ],
+                       "done":  false
+                   },
+                   {
+                       "round_index":  10,
+                       "observation_summary":  {
+                                                   "round_index":  10,
+                                                   "remaining_rounds":  20,
+                                                   "depot_inventory":  {
+                                                                           "fresh_milk":  5,
+                                                                           "rice_bag_5kg":  2,
+                                                                           "insulin_pack":  7,
+                                                                           "usb_c_charger":  3
+                                                                       },
+                                                   "depot_trucks_available":  1,
+                                                   "inbound_procurements":  [
+                                                                                {
+                                                                                    "arrival_round":  11,
+                                                                                    "sku":  "fresh_milk",
+                                                                                    "units":  5
+                                                                                }
+                                                                            ],
+                                                   "demand_reports":  [
+                                                                          "west:fresh_milk req=2 risk=0 miss=2 fc=4 urg=3"
+                                                                      ],
+                                                   "market_requests":  [
+                                                                           "north:fresh_milkx1u1",
+                                                                           "west:fresh_milkx3u2"
+                                                                       ],
+                                                   "market_offers":  [
+                                                                         "east:insulin_packx2@7.83",
+                                                                         "south:rice_bag_5kgx3@3.67",
+                                                                         "west:insulin_packx3@8.71",
+                                                                         "west:usb_c_chargerx2@11.19",
+                                                                         "central:rice_bag_5kgx4@4.49"
+                                                                     ],
+                                                   "pressure":  "1 urgent warehouse demand report(s) need allocation."
+                                               },
+                       "action":  {
+                                      "central_replenishments":  [
+                                                                     {
+                                                                         "to_warehouse":  "west",
+                                                                         "sku":  "fresh_milk",
+                                                                         "units":  5
+                                                                     }
+                                                                 ]
+                                  },
+                       "reasoning":  "sent depot fresh_milkx5 to highest visible pressure west",
+                       "reward":  6.701,
+                       "cumulative_reward":  128.343,
+                       "components":  {
+                                          "central_replenishment_cost":  -11.0,
+                                          "central_replenishment_bonus":  1.25,
+                                          "fulfilled_order_value":  39.0,
+                                          "delivery_cost":  -3.0,
+                                          "holding_cost":  -5.445,
+                                          "fairness_penalty":  -14.104
+                                      },
+                       "events":  [
+                                      "central depot sent 5 fresh_milk to west",
+                                      "north local agent fulfilled 1 fresh_milk",
+                                      "west local agent fulfilled 2 fresh_milk"
+                                  ],
+                       "negotiation_trace":  [
+
+                                             ],
+                       "done":  false
+                   },
+                   {
+                       "round_index":  11,
+                       "observation_summary":  {
+                                                   "round_index":  11,
+                                                   "remaining_rounds":  19,
+                                                   "depot_inventory":  {
+                                                                           "fresh_milk":  0,
+                                                                           "rice_bag_5kg":  2,
+                                                                           "insulin_pack":  7,
+                                                                           "usb_c_charger":  3
+                                                                       },
+                                                   "depot_trucks_available":  0,
+                                                   "inbound_procurements":  [
+                                                                                {
+                                                                                    "arrival_round":  11,
+                                                                                    "sku":  "fresh_milk",
+                                                                                    "units":  5
+                                                                                }
+                                                                            ],
+                                                   "demand_reports":  [
+                                                                          "north:rice_bag_5kg req=1 risk=0 miss=1 fc=1 urg=3"
+                                                                      ],
+                                                   "market_requests":  [
+                                                                           "north:fresh_milkx2u2"
+                                                                       ],
+                                                   "market_offers":  [
+                                                                         "east:insulin_packx2@7.83",
+                                                                         "south:rice_bag_5kgx3@3.67",
+                                                                         "west:insulin_packx3@8.71",
+                                                                         "west:usb_c_chargerx2@11.19",
+                                                                         "central:rice_bag_5kgx4@4.49"
+                                                                     ],
+                                                   "pressure":  "1 urgent warehouse demand report(s) need allocation."
+                                               },
+                       "action":  {
+                                      "central_procurements":  [
+                                                                   {
+                                                                       "sku":  "rice_bag_5kg",
+                                                                       "units":  6
+                                                                   }
+                                                               ]
+                                  },
+                       "reasoning":  "procured rice_bag_5kg x6 for repeated/forecast pressure",
+                       "reward":  -9.33,
+                       "cumulative_reward":  119.013,
+                       "components":  {
+                                          "central_procurement_cost":  -19.2,
+                                          "strategic_procurement_bonus":  2.1,
+                                          "fulfilled_order_value":  33.0,
+                                          "delivery_cost":  -2.0,
+                                          "holding_cost":  -5.335,
+                                          "fairness_penalty":  -17.895
+                                      },
+                       "events":  [
+                                      "central bought 6 rice_bag_5kg for depot arrival at round 13",
+                                      "north local agent fulfilled 1 rice_bag_5kg",
+                                      "central local agent fulfilled 1 insulin_pack"
+                                  ],
+                       "negotiation_trace":  [
+
+                                             ],
+                       "done":  false
+                   },
+                   {
+                       "round_index":  12,
+                       "observation_summary":  {
+                                                   "round_index":  12,
+                                                   "remaining_rounds":  18,
+                                                   "depot_inventory":  {
+                                                                           "fresh_milk":  5,
+                                                                           "rice_bag_5kg":  2,
+                                                                           "insulin_pack":  7,
+                                                                           "usb_c_charger":  3
+                                                                       },
+                                                   "depot_trucks_available":  1,
+                                                   "inbound_procurements":  [
+                                                                                {
+                                                                                    "arrival_round":  13,
+                                                                                    "sku":  "rice_bag_5kg",
+                                                                                    "units":  6
+                                                                                }
+                                                                            ],
+                                                   "demand_reports":  [
+
+                                                                      ],
+                                                   "market_requests":  [
+                                                                           "north:fresh_milkx2u2",
+                                                                           "north:rice_bag_5kgx1u1",
+                                                                           "central:insulin_packx1u1"
+                                                                       ],
+                                                   "market_offers":  [
+                                                                         "east:insulin_packx1@7.83",
+                                                                         "south:rice_bag_5kgx2@3.67",
+                                                                         "west:insulin_packx3@8.71",
+                                                                         "west:usb_c_chargerx2@11.19",
+                                                                         "central:rice_bag_5kgx4@4.49"
+                                                                     ],
+                                                   "pressure":  "No aggregated warehouse demand pressure is visible."
+                                               },
+                       "action":  {
+                                      "offer_matches":  [
+                                                            {
+                                                                "offer_signal_id":  "east:offer:insulin_pack",
+                                                                "request_signal_id":  "central:request:insulin_pack",
+                                                                "units":  1
+                                                            },
+                                                            {
+                                                                "offer_signal_id":  "south:offer:rice_bag_5kg",
+                                                                "request_signal_id":  "north:request:rice_bag_5kg",
+                                                                "units":  1
+                                                            }
+                                                        ],
+                                      "central_replenishments":  [
+                                                                     {
+                                                                         "to_warehouse":  "north",
+                                                                         "sku":  "fresh_milk",
+                                                                         "units":  4
+                                                                     }
+                                                                 ]
+                                  },
+                       "reasoning":  "matched 1 insulin_pack from east to central; matched 1 rice_bag_5kg from south to north; sent depot fresh_milkx4 to highest visible pressure north",
+                       "reward":  -8.452,
+                       "cumulative_reward":  110.561,
+                       "components":  {
+                                          "central_replenishment_cost":  -8.8,
+                                          "central_replenishment_bonus":  1.0,
+                                          "transfer_cost":  -3.75,
+                                          "accepted_trade_bonus":  0.8,
+                                          "fulfilled_order_value":  22.0,
+                                          "delivery_cost":  -1.0,
+                                          "holding_cost":  -5.5,
+                                          "fairness_penalty":  -15.702,
+                                          "coalition_bonus":  2.5
+                                      },
+                       "events":  [
+                                      "central depot sent 4 fresh_milk to north",
+                                      "central approved 1 insulin_pack from east to central via transfer truck capacity",
+                                      "central approved 1 rice_bag_5kg from south to north via transfer truck capacity",
+                                      "east transferred 1 insulin_pack to central",
+                                      "south transferred 1 rice_bag_5kg to north",
+                                      "south local agent fulfilled 1 insulin_pack"
+                                  ],
+                       "negotiation_trace":  [
+                                                 {
+                                                     "actor":  "east",
+                                                     "proposal_type":  "inventory_transfer",
+                                                     "status":  "accepted",
+                                                     "summary":  "accepted fair compensation",
+                                                     "local_utility_delta":  7.83
+                                                 },
+                                                 {
+                                                     "actor":  "south",
+                                                     "proposal_type":  "inventory_transfer",
+                                                     "status":  "accepted",
+                                                     "summary":  "accepted fair compensation",
+                                                     "local_utility_delta":  3.67
+                                                 }
+                                             ],
+                       "done":  false
+                   },
+                   {
+                       "round_index":  13,
+                       "observation_summary":  {
+                                                   "round_index":  13,
+                                                   "remaining_rounds":  17,
+                                                   "depot_inventory":  {
+                                                                           "fresh_milk":  1,
+                                                                           "rice_bag_5kg":  2,
+                                                                           "insulin_pack":  7,
+                                                                           "usb_c_charger":  3
+                                                                       },
+                                                   "depot_trucks_available":  0,
+                                                   "inbound_procurements":  [
+                                                                                {
+                                                                                    "arrival_round":  13,
+                                                                                    "sku":  "rice_bag_5kg",
+                                                                                    "units":  6
+                                                                                }
+                                                                            ],
+                                                   "demand_reports":  [
+                                                                          "south:fresh_milk req=2 risk=0 miss=2 fc=5 urg=3"
+                                                                      ],
+                                                   "market_requests":  [
+                                                                           "south:insulin_packx1u1"
+                                                                       ],
+                                                   "market_offers":  [
+                                                                         "north:fresh_milkx2@3.28",
+                                                                         "south:rice_bag_5kgx2@3.65",
+                                                                         "west:insulin_packx2@8.71",
+                                                                         "west:usb_c_chargerx2@11.19",
+                                                                         "central:rice_bag_5kgx4@4.49"
+                                                                     ],
+                                                   "pressure":  "1 urgent warehouse demand report(s) need allocation."
+                                               },
+                       "action":  {
+                                      "offer_matches":  [
+                                                            {
+                                                                "offer_signal_id":  "west:offer:insulin_pack",
+                                                                "request_signal_id":  "south:request:insulin_pack",
+                                                                "units":  1
+                                                            }
+                                                        ],
+                                      "central_procurements":  [
+                                                                   {
+                                                                       "sku":  "fresh_milk",
+                                                                       "units":  6
+                                                                   }
+                                                               ]
+                                  },
+                       "reasoning":  "matched 1 insulin_pack from west to south; procured fresh_milk x6 for repeated/forecast pressure",
+                       "reward":  36.964,
+                       "cumulative_reward":  147.525,
+                       "components":  {
+                                          "central_procurement_cost":  -24.0,
+                                          "strategic_procurement_bonus":  2.1,
+                                          "transfer_cost":  -1.725,
+                                          "accepted_trade_bonus":  0.4,
+                                          "fulfilled_order_value":  87.0,
+                                          "delivery_cost":  -6.0,
+                                          "holding_cost":  -5.17,
+                                          "fairness_penalty":  -18.141,
+                                          "coalition_bonus":  2.5
+                                      },
+                       "events":  [
+                                      "central bought 6 fresh_milk for depot arrival at round 15",
+                                      "central approved 1 insulin_pack from west to south via transfer truck capacity",
+                                      "west transferred 1 insulin_pack to south",
+                                      "north local agent fulfilled 1 rice_bag_5kg",
+                                      "east local agent fulfilled 1 usb_c_charger",
+                                      "south local agent fulfilled 2 fresh_milk",
+                                      "west local agent fulfilled 2 fresh_milk"
+                                  ],
+                       "negotiation_trace":  [
+                                                 {
+                                                     "actor":  "west",
+                                                     "proposal_type":  "inventory_transfer",
+                                                     "status":  "accepted",
+                                                     "summary":  "accepted fair compensation",
+                                                     "local_utility_delta":  8.71
+                                                 }
+                                             ],
+                       "done":  false
+                   },
+                   {
+                       "round_index":  14,
+                       "observation_summary":  {
+                                                   "round_index":  14,
+                                                   "remaining_rounds":  16,
+                                                   "depot_inventory":  {
+                                                                           "fresh_milk":  1,
+                                                                           "rice_bag_5kg":  8,
+                                                                           "insulin_pack":  7,
+                                                                           "usb_c_charger":  3
+                                                                       },
+                                                   "depot_trucks_available":  1,
+                                                   "inbound_procurements":  [
+                                                                                {
+                                                                                    "arrival_round":  15,
+                                                                                    "sku":  "fresh_milk",
+                                                                                    "units":  6
+                                                                                }
+                                                                            ],
+                                                   "demand_reports":  [
+                                                                          "west:rice_bag_5kg req=1 risk=0 miss=1 fc=1 urg=3"
+                                                                      ],
+                                                   "market_requests":  [
+                                                                           "north:rice_bag_5kgx1u1",
+                                                                           "east:usb_c_chargerx1u1",
+                                                                           "south:fresh_milkx2u2",
+                                                                           "west:fresh_milkx2u2"
+                                                                       ],
+                                                   "market_offers":  [
+                                                                         "north:fresh_milkx0@3.28",
+                                                                         "south:rice_bag_5kgx1@3.65",
+                                                                         "west:insulin_packx2@8.64",
+                                                                         "west:usb_c_chargerx1@11.11",
+                                                                         "central:rice_bag_5kgx4@4.49"
+                                                                     ],
+                                                   "pressure":  "1 urgent warehouse demand report(s) need allocation."
+                                               },
+                       "action":  {
+                                      "offer_matches":  [
+                                                            {
+                                                                "offer_signal_id":  "north:offer:fresh_milk",
+                                                                "request_signal_id":  "south:request:fresh_milk",
+                                                                "units":  2
+                                                            },
+                                                            {
+                                                                "offer_signal_id":  "south:offer:rice_bag_5kg",
+                                                                "request_signal_id":  "north:request:rice_bag_5kg",
+                                                                "units":  1
+                                                            },
+                                                            {
+                                                                "offer_signal_id":  "west:offer:usb_c_charger",
+                                                                "request_signal_id":  "east:request:usb_c_charger",
+                                                                "units":  1
+                                                            }
+                                                        ],
+                                      "central_replenishments":  [
+                                                                     {
+                                                                         "to_warehouse":  "west",
+                                                                         "sku":  "rice_bag_5kg",
+                                                                         "units":  6
+                                                                     }
+                                                                 ],
+                                      "central_procurements":  [
+                                                                   {
+                                                                       "sku":  "fresh_milk",
+                                                                       "units":  3
+                                                                   }
+                                                               ]
+                                  },
+                       "reasoning":  "matched 2 fresh_milk from north to south; matched 1 rice_bag_5kg from south to north; matched 1 usb_c_charger from west to east; sent depot rice_bag_5kgx6 to highest visible pressure west; procured fresh_milk x3 for repeated/forecast pressure",
+                       "reward":  -42.427,
+                       "cumulative_reward":  105.098,
+                       "components":  {
+                                          "central_procurement_cost":  -12.0,
+                                          "strategic_procurement_bonus":  1.05,
+                                          "central_replenishment_cost":  -13.2,
+                                          "central_replenishment_bonus":  1.5,
+                                          "transfer_cost":  -6.825,
+                                          "accepted_trade_bonus":  1.2,
+                                          "fulfilled_order_value":  11.0,
+                                          "delivery_cost":  -1.0,
+                                          "holding_cost":  -5.445,
+                                          "fairness_penalty":  -21.207,
+                                          "coalition_bonus":  2.5
+                                      },
+                       "events":  [
+                                      "central bought 3 fresh_milk for depot arrival at round 16",
+                                      "central depot sent 6 rice_bag_5kg to west",
+                                      "central approved 2 fresh_milk from north to south via transfer truck capacity",
+                                      "central approved 1 rice_bag_5kg from south to north via transfer truck capacity",
+                                      "central approved 1 usb_c_charger from west to east via transfer truck capacity",
+                                      "north transferred 2 fresh_milk to south",
+                                      "south transferred 1 rice_bag_5kg to north",
+                                      "west transferred 1 usb_c_charger to east",
+                                      "west local agent fulfilled 1 rice_bag_5kg"
+                                  ],
+                       "negotiation_trace":  [
+                                                 {
+                                                     "actor":  "north",
+                                                     "proposal_type":  "inventory_transfer",
+                                                     "status":  "accepted",
+                                                     "summary":  "accepted fair compensation",
+                                                     "local_utility_delta":  6.56
+                                                 },
+                                                 {
+                                                     "actor":  "south",
+                                                     "proposal_type":  "inventory_transfer",
+                                                     "status":  "accepted",
+                                                     "summary":  "accepted fair compensation",
+                                                     "local_utility_delta":  3.65
+                                                 },
+                                                 {
+                                                     "actor":  "west",
+                                                     "proposal_type":  "inventory_transfer",
+                                                     "status":  "accepted",
+                                                     "summary":  "accepted fair compensation",
+                                                     "local_utility_delta":  11.11
+                                                 }
+                                             ],
+                       "done":  false
+                   },
+                   {
+                       "round_index":  15,
+                       "observation_summary":  {
+                                                   "round_index":  15,
+                                                   "remaining_rounds":  15,
+                                                   "depot_inventory":  {
+                                                                           "fresh_milk":  1,
+                                                                           "rice_bag_5kg":  2,
+                                                                           "insulin_pack":  7,
+                                                                           "usb_c_charger":  3
+                                                                       },
+                                                   "depot_trucks_available":  0,
+                                                   "inbound_procurements":  [
+                                                                                {
+                                                                                    "arrival_round":  15,
+                                                                                    "sku":  "fresh_milk",
+                                                                                    "units":  6
+                                                                                },
+                                                                                {
+                                                                                    "arrival_round":  16,
+                                                                                    "sku":  "fresh_milk",
+                                                                                    "units":  3
+                                                                                }
+                                                                            ],
+                                                   "demand_reports":  [
+
+                                                                      ],
+                                                   "market_requests":  [
+                                                                           "west:fresh_milkx2u2"
+                                                                       ],
+                                                   "market_offers":  [
+                                                                         "west:rice_bag_5kgx4@3.67",
+                                                                         "west:insulin_packx2@8.57",
+                                                                         "central:rice_bag_5kgx4@4.49"
+                                                                     ],
+                                                   "pressure":  "No aggregated warehouse demand pressure is visible."
+                                               },
+                       "action":  {
+
+                                  },
+                       "reasoning":  "held action: local stock/offers looked sufficient or central assets unavailable",
+                       "reward":  -6.382,
+                       "cumulative_reward":  98.715,
+                       "components":  {
+                                          "fulfilled_order_value":  30.0,
+                                          "delivery_cost":  -2.0,
+                                          "holding_cost":  -5.335,
+                                          "fairness_penalty":  -29.047
+                                      },
+                       "events":  [
+                                      "west local agent fulfilled 2 rice_bag_5kg"
+                                  ],
+                       "negotiation_trace":  [
+
+                                             ],
+                       "done":  false
+                   },
+                   {
+                       "round_index":  16,
+                       "observation_summary":  {
+                                                   "round_index":  16,
+                                                   "remaining_rounds":  14,
+                                                   "depot_inventory":  {
+                                                                           "fresh_milk":  7,
+                                                                           "rice_bag_5kg":  2,
+                                                                           "insulin_pack":  7,
+                                                                           "usb_c_charger":  3
+                                                                       },
+                                                   "depot_trucks_available":  1,
+                                                   "inbound_procurements":  [
+                                                                                {
+                                                                                    "arrival_round":  16,
+                                                                                    "sku":  "fresh_milk",
+                                                                                    "units":  3
+                                                                                }
+                                                                            ],
+                                                   "demand_reports":  [
+                                                                          "central:insulin_pack req=2 risk=0 miss=0 fc=4 urg=1"
+                                                                      ],
+                                                   "market_requests":  [
+                                                                           "west:fresh_milkx2u2"
+                                                                       ],
+                                                   "market_offers":  [
+                                                                         "west:rice_bag_5kgx3@3.67",
+                                                                         "west:insulin_packx2@8.57",
+                                                                         "central:rice_bag_5kgx4@4.49"
+                                                                     ],
+                                                   "pressure":  "Highest visible pressure: central needs 2 insulin_pack."
+                                               },
+                       "action":  {
+                                      "central_replenishments":  [
+                                                                     {
+                                                                         "to_warehouse":  "central",
+                                                                         "sku":  "insulin_pack",
+                                                                         "units":  5
+                                                                     }
+                                                                 ],
+                                      "central_procurements":  [
+                                                                   {
+                                                                       "sku":  "insulin_pack",
+                                                                       "units":  3
+                                                                   }
+                                                               ]
+                                  },
+                       "reasoning":  "sent depot insulin_packx5 to highest visible pressure central; procured insulin_pack x3 for repeated/forecast pressure",
+                       "reward":  22.534,
+                       "cumulative_reward":  121.25,
+                       "components":  {
+                                          "central_procurement_cost":  -24.0,
+                                          "central_replenishment_cost":  -11.0,
+                                          "central_replenishment_bonus":  1.25,
+                                          "fulfilled_order_value":  95.0,
+                                          "delivery_cost":  -5.0,
+                                          "holding_cost":  -5.335,
+                                          "fairness_penalty":  -28.381
+                                      },
+                       "events":  [
+                                      "central bought 3 insulin_pack for depot arrival at round 18",
+                                      "central depot sent 5 insulin_pack to central",
+                                      "north local agent fulfilled 1 rice_bag_5kg",
+                                      "south local agent fulfilled 2 fresh_milk",
+                                      "central local agent fulfilled 2 insulin_pack"
+                                  ],
+                       "negotiation_trace":  [
+
+                                             ],
+                       "done":  false
+                   },
+                   {
+                       "round_index":  17,
+                       "observation_summary":  {
+                                                   "round_index":  17,
+                                                   "remaining_rounds":  13,
+                                                   "depot_inventory":  {
+                                                                           "fresh_milk":  10,
+                                                                           "rice_bag_5kg":  2,
+                                                                           "insulin_pack":  2,
+                                                                           "usb_c_charger":  3
+                                                                       },
+                                                   "depot_trucks_available":  0,
+                                                   "inbound_procurements":  [
+                                                                                {
+                                                                                    "arrival_round":  18,
+                                                                                    "sku":  "insulin_pack",
+                                                                                    "units":  3
+                                                                                }
+                                                                            ],
+                                                   "demand_reports":  [
+                                                                          "west:fresh_milk req=2 risk=0 miss=0 fc=4 urg=1",
+                                                                          "central:fresh_milk req=2 risk=0 miss=2 fc=5 urg=3"
+                                                                      ],
+                                                   "market_requests":  [
+                                                                           "north:rice_bag_5kgx1u1",
+                                                                           "south:fresh_milkx2u2",
+                                                                           "west:fresh_milkx2u2"
+                                                                       ],
+                                                   "market_offers":  [
+                                                                         "west:rice_bag_5kgx2@3.67",
+                                                                         "west:insulin_packx2@8.57",
+                                                                         "central:rice_bag_5kgx4@4.49",
+                                                                         "central:insulin_packx3@10.47"
+                                                                     ],
+                                                   "pressure":  "1 urgent warehouse demand report(s) need allocation."
+                                               },
+                       "action":  {
+                                      "offer_matches":  [
+                                                            {
+                                                                "offer_signal_id":  "west:offer:rice_bag_5kg",
+                                                                "request_signal_id":  "north:request:rice_bag_5kg",
+                                                                "units":  1
+                                                            }
+                                                        ]
+                                  },
+                       "reasoning":  "matched 1 rice_bag_5kg from west to north",
+                       "reward":  17.317,
+                       "cumulative_reward":  138.566,
+                       "components":  {
+                                          "transfer_cost":  -2.1,
+                                          "accepted_trade_bonus":  0.4,
+                                          "fulfilled_order_value":  64.0,
+                                          "delivery_cost":  -4.0,
+                                          "holding_cost":  -5.115,
+                                          "fairness_penalty":  -38.368,
+                                          "coalition_bonus":  2.5
+                                      },
+                       "events":  [
+                                      "central approved 1 rice_bag_5kg from west to north via transfer truck capacity",
+                                      "west transferred 1 rice_bag_5kg to north",
+                                      "west local agent fulfilled 2 fresh_milk",
+                                      "central local agent fulfilled 2 fresh_milk"
+                                  ],
+                       "negotiation_trace":  [
+                                                 {
+                                                     "actor":  "west",
+                                                     "proposal_type":  "inventory_transfer",
+                                                     "status":  "accepted",
+                                                     "summary":  "accepted fair compensation",
+                                                     "local_utility_delta":  3.67
+                                                 }
+                                             ],
+                       "done":  false
+                   },
+                   {
+                       "round_index":  18,
+                       "observation_summary":  {
+                                                   "round_index":  18,
+                                                   "remaining_rounds":  12,
+                                                   "depot_inventory":  {
+                                                                           "fresh_milk":  10,
+                                                                           "rice_bag_5kg":  2,
+                                                                           "insulin_pack":  2,
+                                                                           "usb_c_charger":  3
+                                                                       },
+                                                   "depot_trucks_available":  1,
+                                                   "inbound_procurements":  [
+                                                                                {
+                                                                                    "arrival_round":  18,
+                                                                                    "sku":  "insulin_pack",
+                                                                                    "units":  3
+                                                                                }
+                                                                            ],
+                                                   "demand_reports":  [
+                                                                          "west:fresh_milk req=0 risk=0 miss=0 fc=4 urg=1"
+                                                                      ],
+                                                   "market_requests":  [
+                                                                           "south:fresh_milkx2u2",
+                                                                           "west:fresh_milkx4u2",
+                                                                           "central:fresh_milkx2u2"
+                                                                       ],
+                                                   "market_offers":  [
+                                                                         "west:rice_bag_5kgx2@3.65",
+                                                                         "west:insulin_packx2@8.51",
+                                                                         "central:rice_bag_5kgx4@4.49",
+                                                                         "central:insulin_packx3@10.47"
+                                                                     ],
+                                                   "pressure":  "Highest visible pressure: west needs 0 fresh_milk."
+                                               },
+                       "action":  {
+                                      "central_replenishments":  [
+                                                                     {
+                                                                         "to_warehouse":  "west",
+                                                                         "sku":  "fresh_milk",
+                                                                         "units":  6
+                                                                     }
+                                                                 ]
+                                  },
+                       "reasoning":  "sent depot fresh_milkx6 to highest visible pressure west",
+                       "reward":  -40.608,
+                       "cumulative_reward":  97.958,
+                       "components":  {
+                                          "central_replenishment_cost":  -13.2,
+                                          "central_replenishment_bonus":  1.5,
+                                          "fulfilled_order_value":  17.0,
+                                          "delivery_cost":  -1.0,
+                                          "holding_cost":  -5.39,
+                                          "waste_penalty":  -1.15,
+                                          "fairness_penalty":  -38.368
+                                      },
+                       "events":  [
+                                      "central depot sent 6 fresh_milk to west",
+                                      "north local agent fulfilled 1 fresh_milk"
+                                  ],
+                       "negotiation_trace":  [
+
+                                             ],
+                       "done":  false
+                   },
+                   {
+                       "round_index":  19,
+                       "observation_summary":  {
+                                                   "round_index":  19,
+                                                   "remaining_rounds":  11,
+                                                   "depot_inventory":  {
+                                                                           "fresh_milk":  4,
+                                                                           "rice_bag_5kg":  2,
+                                                                           "insulin_pack":  5,
+                                                                           "usb_c_charger":  3
+                                                                       },
+                                                   "depot_trucks_available":  0,
+                                                   "inbound_procurements":  [
+
+                                                                            ],
+                                                   "demand_reports":  [
+                                                                          "north:insulin_pack req=2 risk=0 miss=0 fc=3 urg=1"
+                                                                      ],
+                                                   "market_requests":  [
+                                                                           "north:fresh_milkx1u1",
+                                                                           "south:fresh_milkx2u2",
+                                                                           "central:fresh_milkx2u2"
+                                                                       ],
+                                                   "market_offers":  [
+                                                                         "west:fresh_milkx0@4.86",
+                                                                         "west:rice_bag_5kgx2@3.65",
+                                                                         "west:insulin_packx2@8.51",
+                                                                         "central:rice_bag_5kgx4@4.49",
+                                                                         "central:insulin_packx3@10.47"
+                                                                     ],
+                                                   "pressure":  "Highest visible pressure: north needs 2 insulin_pack."
+                                               },
+                       "action":  {
+                                      "offer_matches":  [
+                                                            {
+                                                                "offer_signal_id":  "west:offer:fresh_milk",
+                                                                "request_signal_id":  "central:request:fresh_milk",
+                                                                "units":  2
+                                                            }
+                                                        ],
+                                      "central_procurements":  [
+                                                                   {
+                                                                       "sku":  "fresh_milk",
+                                                                       "units":  6
+                                                                   }
+                                                               ]
+                                  },
+                       "reasoning":  "matched 2 fresh_milk from west to central; procured fresh_milk x6 for repeated/forecast pressure",
+                       "reward":  15.175,
+                       "cumulative_reward":  113.133,
+                       "components":  {
+                                          "central_procurement_cost":  -24.0,
+                                          "transfer_cost":  -4.2,
+                                          "accepted_trade_bonus":  0.4,
+                                          "fulfilled_order_value":  97.0,
+                                          "delivery_cost":  -5.0,
+                                          "holding_cost":  -5.115,
+                                          "fairness_penalty":  -46.41,
+                                          "coalition_bonus":  2.5
+                                      },
+                       "events":  [
+                                      "central bought 6 fresh_milk for depot arrival at round 21",
+                                      "central approved 2 fresh_milk from west to central via transfer truck capacity",
+                                      "west transferred 2 fresh_milk to central",
+                                      "north local agent fulfilled 2 insulin_pack",
+                                      "east local agent fulfilled 1 rice_bag_5kg",
+                                      "west local agent fulfilled 2 fresh_milk"
+                                  ],
+                       "negotiation_trace":  [
+                                                 {
+                                                     "actor":  "west",
+                                                     "proposal_type":  "inventory_transfer",
+                                                     "status":  "accepted",
+                                                     "summary":  "accepted fair compensation",
+                                                     "local_utility_delta":  9.72
+                                                 }
+                                             ],
+                       "done":  false
+                   },
+                   {
+                       "round_index":  20,
+                       "observation_summary":  {
+                                                   "round_index":  20,
+                                                   "remaining_rounds":  10,
+                                                   "depot_inventory":  {
+                                                                           "fresh_milk":  4,
+                                                                           "rice_bag_5kg":  2,
+                                                                           "insulin_pack":  5,
+                                                                           "usb_c_charger":  3
+                                                                       },
+                                                   "depot_trucks_available":  1,
+                                                   "inbound_procurements":  [
+                                                                                {
+                                                                                    "arrival_round":  21,
+                                                                                    "sku":  "fresh_milk",
+                                                                                    "units":  6
+                                                                                }
+                                                                            ],
+                                                   "demand_reports":  [
+                                                                          "north:insulin_pack req=0 risk=0 miss=0 fc=3 urg=1",
+                                                                          "east:insulin_pack req=1 risk=0 miss=1 fc=1 urg=3"
+                                                                      ],
+                                                   "market_requests":  [
+                                                                           "north:fresh_milkx1u1",
+                                                                           "north:insulin_packx2u2",
+                                                                           "east:rice_bag_5kgx1u1",
+                                                                           "south:fresh_milkx2u2",
+                                                                           "west:fresh_milkx2u2"
+                                                                       ],
+                                                   "market_offers":  [
+                                                                         "west:rice_bag_5kgx1@3.62",
+                                                                         "west:insulin_packx0@8.44",
+                                                                         "central:rice_bag_5kgx4@4.49",
+                                                                         "central:insulin_packx3@10.47"
+                                                                     ],
+                                                   "pressure":  "1 urgent warehouse demand report(s) need allocation."
+                                               },
+                       "action":  {
+                                      "offer_matches":  [
+                                                            {
+                                                                "offer_signal_id":  "west:offer:insulin_pack",
+                                                                "request_signal_id":  "north:request:insulin_pack",
+                                                                "units":  2
+                                                            },
+                                                            {
+                                                                "offer_signal_id":  "west:offer:rice_bag_5kg",
+                                                                "request_signal_id":  "east:request:rice_bag_5kg",
+                                                                "units":  1
+                                                            }
+                                                        ],
+                                      "central_replenishments":  [
+                                                                     {
+                                                                         "to_warehouse":  "east",
+                                                                         "sku":  "insulin_pack",
+                                                                         "units":  5
+                                                                     }
+                                                                 ],
+                                      "central_procurements":  [
+                                                                   {
+                                                                       "sku":  "insulin_pack",
+                                                                       "units":  5
+                                                                   }
+                                                               ]
+                                  },
+                       "reasoning":  "matched 2 insulin_pack from west to north; matched 1 rice_bag_5kg from west to east; sent depot insulin_packx5 to highest visible pressure east; procured insulin_pack x5 for repeated/forecast pressure",
+                       "reward":  -80.27,
+                       "cumulative_reward":  32.863,
+                       "components":  {
+                                          "central_procurement_cost":  -40.0,
+                                          "central_replenishment_cost":  -11.0,
+                                          "central_replenishment_bonus":  1.25,
+                                          "transfer_cost":  -5.775,
+                                          "accepted_trade_bonus":  0.8,
+                                          "fulfilled_order_value":  24.0,
+                                          "delivery_cost":  -1.0,
+                                          "holding_cost":  -5.335,
+                                          "fairness_penalty":  -45.71,
+                                          "coalition_bonus":  2.5
+                                      },
+                       "events":  [
+                                      "central bought 5 insulin_pack for depot arrival at round 22",
+                                      "central depot sent 5 insulin_pack to east",
+                                      "central approved 2 insulin_pack from west to north via transfer truck capacity",
+                                      "central approved 1 rice_bag_5kg from west to east via transfer truck capacity",
+                                      "west transferred 2 insulin_pack to north",
+                                      "west transferred 1 rice_bag_5kg to east",
+                                      "east local agent fulfilled 1 insulin_pack"
+                                  ],
+                       "negotiation_trace":  [
+                                                 {
+                                                     "actor":  "west",
+                                                     "proposal_type":  "inventory_transfer",
+                                                     "status":  "accepted",
+                                                     "summary":  "accepted fair compensation",
+                                                     "local_utility_delta":  16.88
+                                                 },
+                                                 {
+                                                     "actor":  "west",
+                                                     "proposal_type":  "inventory_transfer",
+                                                     "status":  "accepted",
+                                                     "summary":  "accepted fair compensation",
+                                                     "local_utility_delta":  3.62
+                                                 }
+                                             ],
+                       "done":  false
+                   },
+                   {
+                       "round_index":  21,
+                       "observation_summary":  {
+                                                   "round_index":  21,
+                                                   "remaining_rounds":  9,
+                                                   "depot_inventory":  {
+                                                                           "fresh_milk":  4,
+                                                                           "rice_bag_5kg":  2,
+                                                                           "insulin_pack":  0,
+                                                                           "usb_c_charger":  3
+                                                                       },
+                                                   "depot_trucks_available":  0,
+                                                   "inbound_procurements":  [
+                                                                                {
+                                                                                    "arrival_round":  21,
+                                                                                    "sku":  "fresh_milk",
+                                                                                    "units":  6
+                                                                                },
+                                                                                {
+                                                                                    "arrival_round":  22,
+                                                                                    "sku":  "insulin_pack",
+                                                                                    "units":  5
+                                                                                }
+                                                                            ],
+                                                   "demand_reports":  [
+
+                                                                      ],
+                                                   "market_requests":  [
+                                                                           "north:fresh_milkx1u1",
+                                                                           "south:fresh_milkx2u2",
+                                                                           "west:fresh_milkx2u2"
+                                                                       ],
+                                                   "market_offers":  [
+                                                                         "east:insulin_packx4@7.77",
+                                                                         "central:rice_bag_5kgx4@4.49",
+                                                                         "central:insulin_packx3@10.47"
+                                                                     ],
+                                                   "pressure":  "No aggregated warehouse demand pressure is visible."
+                                               },
+                       "action":  {
+
+                                  },
+                       "reasoning":  "held action: local stock/offers looked sufficient or central assets unavailable",
+                       "reward":  35.26,
+                       "cumulative_reward":  68.123,
+                       "components":  {
+                                          "fulfilled_order_value":  103.0,
+                                          "delivery_cost":  -7.0,
+                                          "holding_cost":  -4.95,
+                                          "fairness_penalty":  -55.79
+                                      },
+                       "events":  [
+                                      "south local agent fulfilled 1 rice_bag_5kg",
+                                      "west local agent fulfilled 3 rice_bag_5kg",
+                                      "central local agent fulfilled 3 fresh_milk"
+                                  ],
+                       "negotiation_trace":  [
+
+                                             ],
+                       "done":  false
+                   },
+                   {
+                       "round_index":  22,
+                       "observation_summary":  {
+                                                   "round_index":  22,
+                                                   "remaining_rounds":  8,
+                                                   "depot_inventory":  {
+                                                                           "fresh_milk":  10,
+                                                                           "rice_bag_5kg":  2,
+                                                                           "insulin_pack":  0,
+                                                                           "usb_c_charger":  3
+                                                                       },
+                                                   "depot_trucks_available":  1,
+                                                   "inbound_procurements":  [
+                                                                                {
+                                                                                    "arrival_round":  22,
+                                                                                    "sku":  "insulin_pack",
+                                                                                    "units":  5
+                                                                                }
+                                                                            ],
+                                                   "demand_reports":  [
+                                                                          "south:fresh_milk req=1 risk=0 miss=0 fc=5 urg=1",
+                                                                          "central:rice_bag_5kg req=2 risk=0 miss=2 fc=2 urg=3"
+                                                                      ],
+                                                   "market_requests":  [
+                                                                           "north:fresh_milkx1u1",
+                                                                           "south:fresh_milkx2u2",
+                                                                           "west:fresh_milkx2u2",
+                                                                           "west:rice_bag_5kgx2u2",
+                                                                           "central:fresh_milkx3u2"
+                                                                       ],
+                                                   "market_offers":  [
+                                                                         "east:insulin_packx4@7.77",
+                                                                         "central:rice_bag_5kgx2@4.49",
+                                                                         "central:insulin_packx3@10.47"
+                                                                     ],
+                                                   "pressure":  "1 urgent warehouse demand report(s) need allocation."
+                                               },
+                       "action":  {
+                                      "offer_matches":  [
+                                                            {
+                                                                "offer_signal_id":  "central:offer:rice_bag_5kg",
+                                                                "request_signal_id":  "west:request:rice_bag_5kg",
+                                                                "units":  2
+                                                            }
+                                                        ],
+                                      "central_replenishments":  [
+                                                                     {
+                                                                         "to_warehouse":  "central",
+                                                                         "sku":  "rice_bag_5kg",
+                                                                         "units":  2
+                                                                     }
+                                                                 ],
+                                      "central_procurements":  [
+                                                                   {
+                                                                       "sku":  "rice_bag_5kg",
+                                                                       "units":  6
+                                                                   }
+                                                               ]
+                                  },
+                       "reasoning":  "matched 2 rice_bag_5kg from central to west; sent depot rice_bag_5kgx2 to highest visible pressure central; procured rice_bag_5kg x6 for repeated/forecast pressure",
+                       "reward":  -30.43,
+                       "cumulative_reward":  37.693,
+                       "components":  {
+                                          "central_procurement_cost":  -19.2,
+                                          "strategic_procurement_bonus":  2.1,
+                                          "central_replenishment_cost":  -4.4,
+                                          "central_replenishment_bonus":  0.5,
+                                          "transfer_cost":  -2.7,
+                                          "accepted_trade_bonus":  0.4,
+                                          "fulfilled_order_value":  55.0,
+                                          "delivery_cost":  -4.0,
+                                          "holding_cost":  -4.84,
+                                          "fairness_penalty":  -55.79,
+                                          "coalition_bonus":  2.5
+                                      },
+                       "events":  [
+                                      "central bought 6 rice_bag_5kg for depot arrival at round 24",
+                                      "central depot sent 2 rice_bag_5kg to central",
+                                      "central approved 2 rice_bag_5kg from central to west via transfer truck capacity",
+                                      "central transferred 2 rice_bag_5kg to west",
+                                      "south local agent fulfilled 2 rice_bag_5kg",
+                                      "central local agent fulfilled 2 rice_bag_5kg"
+                                  ],
+                       "negotiation_trace":  [
+                                                 {
+                                                     "actor":  "central",
+                                                     "proposal_type":  "inventory_transfer",
+                                                     "status":  "accepted",
+                                                     "summary":  "accepted fair compensation",
+                                                     "local_utility_delta":  8.98
+                                                 }
+                                             ],
+                       "done":  false
+                   },
+                   {
+                       "round_index":  23,
+                       "observation_summary":  {
+                                                   "round_index":  23,
+                                                   "remaining_rounds":  7,
+                                                   "depot_inventory":  {
+                                                                           "fresh_milk":  10,
+                                                                           "rice_bag_5kg":  0,
+                                                                           "insulin_pack":  5,
+                                                                           "usb_c_charger":  3
+                                                                       },
+                                                   "depot_trucks_available":  0,
+                                                   "inbound_procurements":  [
+                                                                                {
+                                                                                    "arrival_round":  24,
+                                                                                    "sku":  "rice_bag_5kg",
+                                                                                    "units":  6
+                                                                                }
+                                                                            ],
+                                                   "demand_reports":  [
+                                                                          "south:fresh_milk req=1 risk=0 miss=1 fc=5 urg=3"
+                                                                      ],
+                                                   "market_requests":  [
+                                                                           "north:fresh_milkx1u1",
+                                                                           "south:fresh_milkx2u2",
+                                                                           "south:rice_bag_5kgx2u2",
+                                                                           "west:fresh_milkx2u2",
+                                                                           "central:fresh_milkx3u2"
+                                                                       ],
+                                                   "market_offers":  [
+                                                                         "east:insulin_packx4@7.77",
+                                                                         "central:rice_bag_5kgx0@4.45",
+                                                                         "central:insulin_packx3@10.39"
+                                                                     ],
+                                                   "pressure":  "1 urgent warehouse demand report(s) need allocation."
+                                               },
+                       "action":  {
+                                      "offer_matches":  [
+                                                            {
+                                                                "offer_signal_id":  "central:offer:rice_bag_5kg",
+                                                                "request_signal_id":  "south:request:rice_bag_5kg",
+                                                                "units":  2
+                                                            }
+                                                        ]
+                                  },
+                       "reasoning":  "matched 2 rice_bag_5kg from central to south",
+                       "reward":  -46.075,
+                       "cumulative_reward":  -8.382,
+                       "components":  {
+                                          "transfer_cost":  -2.4,
+                                          "accepted_trade_bonus":  0.4,
+                                          "fulfilled_order_value":  15.0,
+                                          "delivery_cost":  -1.0,
+                                          "holding_cost":  -4.785,
+                                          "fairness_penalty":  -55.79,
+                                          "coalition_bonus":  2.5
+                                      },
+                       "events":  [
+                                      "central approved 2 rice_bag_5kg from central to south via transfer truck capacity",
+                                      "central transferred 2 rice_bag_5kg to south",
+                                      "south local agent fulfilled 1 fresh_milk"
+                                  ],
+                       "negotiation_trace":  [
+                                                 {
+                                                     "actor":  "central",
+                                                     "proposal_type":  "inventory_transfer",
+                                                     "status":  "accepted",
+                                                     "summary":  "accepted fair compensation",
+                                                     "local_utility_delta":  8.9
+                                                 }
+                                             ],
+                       "done":  false
+                   },
+                   {
+                       "round_index":  24,
+                       "observation_summary":  {
+                                                   "round_index":  24,
+                                                   "remaining_rounds":  6,
+                                                   "depot_inventory":  {
+                                                                           "fresh_milk":  10,
+                                                                           "rice_bag_5kg":  0,
+                                                                           "insulin_pack":  5,
+                                                                           "usb_c_charger":  3
+                                                                       },
+                                                   "depot_trucks_available":  1,
+                                                   "inbound_procurements":  [
+                                                                                {
+                                                                                    "arrival_round":  24,
+                                                                                    "sku":  "rice_bag_5kg",
+                                                                                    "units":  6
+                                                                                }
+                                                                            ],
+                                                   "demand_reports":  [
+                                                                          "south:fresh_milk req=0 risk=0 miss=0 fc=5 urg=1",
+                                                                          "south:usb_c_charger req=2 risk=0 miss=0 fc=1 urg=1",
+                                                                          "central:fresh_milk req=1 risk=0 miss=0 fc=5 urg=1"
+                                                                      ],
+                                                   "market_requests":  [
+                                                                           "north:fresh_milkx1u1",
+                                                                           "south:fresh_milkx3u2",
+                                                                           "west:fresh_milkx2u2",
+                                                                           "central:fresh_milkx3u2"
+                                                                       ],
+                                                   "market_offers":  [
+                                                                         "east:insulin_packx4@7.77",
+                                                                         "central:insulin_packx3@10.31"
+                                                                     ],
+                                                   "pressure":  "Highest visible pressure: south needs 2 usb_c_charger."
+                                               },
+                       "action":  {
+                                      "central_replenishments":  [
+                                                                     {
+                                                                         "to_warehouse":  "central",
+                                                                         "sku":  "fresh_milk",
+                                                                         "units":  6
+                                                                     }
+                                                                 ]
+                                  },
+                       "reasoning":  "sent depot fresh_milkx6 to highest visible pressure central",
+                       "reward":  -5.24,
+                       "cumulative_reward":  -13.622,
+                       "components":  {
+                                          "central_replenishment_cost":  -13.2,
+                                          "central_replenishment_bonus":  1.5,
+                                          "fulfilled_order_value":  72.5,
+                                          "delivery_cost":  -3.0,
+                                          "holding_cost":  -4.95,
+                                          "waste_penalty":  -2.3,
+                                          "fairness_penalty":  -55.79
+                                      },
+                       "events":  [
+                                      "central depot sent 6 fresh_milk to central",
+                                      "south local agent fulfilled 2 usb_c_charger",
+                                      "central local agent fulfilled 1 fresh_milk"
+                                  ],
+                       "negotiation_trace":  [
+
+                                             ],
+                       "done":  false
+                   },
+                   {
+                       "round_index":  25,
+                       "observation_summary":  {
+                                                   "round_index":  25,
+                                                   "remaining_rounds":  5,
+                                                   "depot_inventory":  {
+                                                                           "fresh_milk":  4,
+                                                                           "rice_bag_5kg":  6,
+                                                                           "insulin_pack":  5,
+                                                                           "usb_c_charger":  3
+                                                                       },
+                                                   "depot_trucks_available":  0,
+                                                   "inbound_procurements":  [
+
+                                                                            ],
+                                                   "demand_reports":  [
+                                                                          "south:fresh_milk req=0 risk=0 miss=0 fc=5 urg=1",
+                                                                          "south:rice_bag_5kg req=1 risk=0 miss=1 fc=3 urg=3",
+                                                                          "south:usb_c_charger req=0 risk=0 miss=0 fc=1 urg=1"
+                                                                      ],
+                                                   "market_requests":  [
+                                                                           "north:fresh_milkx1u1",
+                                                                           "south:fresh_milkx3u2",
+                                                                           "south:usb_c_chargerx2u2",
+                                                                           "west:fresh_milkx2u2"
+                                                                       ],
+                                                   "market_offers":  [
+                                                                         "east:insulin_packx4@7.77",
+                                                                         "central:fresh_milkx0@5.89",
+                                                                         "central:insulin_packx3@10.31"
+                                                                     ],
+                                                   "pressure":  "1 urgent warehouse demand report(s) need allocation."
+                                               },
+                       "action":  {
+                                      "offer_matches":  [
+                                                            {
+                                                                "offer_signal_id":  "central:offer:fresh_milk",
+                                                                "request_signal_id":  "south:request:fresh_milk",
+                                                                "units":  2
+                                                            }
+                                                        ]
+                                  },
+                       "reasoning":  "matched 2 fresh_milk from central to south",
+                       "reward":  -6.057,
+                       "cumulative_reward":  -19.679,
+                       "components":  {
+                                          "transfer_cost":  -2.4,
+                                          "accepted_trade_bonus":  0.4,
+                                          "fulfilled_order_value":  59.5,
+                                          "delivery_cost":  -4.0,
+                                          "holding_cost":  -4.73,
+                                          "fairness_penalty":  -57.327,
+                                          "coalition_bonus":  2.5
+                                      },
+                       "events":  [
+                                      "central approved 2 fresh_milk from central to south via transfer truck capacity",
+                                      "central transferred 2 fresh_milk to south",
+                                      "north local agent fulfilled 2 fresh_milk",
+                                      "south local agent fulfilled 1 rice_bag_5kg",
+                                      "central local agent fulfilled 1 rice_bag_5kg"
+                                  ],
+                       "negotiation_trace":  [
+                                                 {
+                                                     "actor":  "central",
+                                                     "proposal_type":  "inventory_transfer",
+                                                     "status":  "accepted",
+                                                     "summary":  "accepted fair compensation",
+                                                     "local_utility_delta":  11.78
+                                                 }
+                                             ],
+                       "done":  false
+                   },
+                   {
+                       "round_index":  26,
+                       "observation_summary":  {
+                                                   "round_index":  26,
+                                                   "remaining_rounds":  4,
+                                                   "depot_inventory":  {
+                                                                           "fresh_milk":  4,
+                                                                           "rice_bag_5kg":  6,
+                                                                           "insulin_pack":  5,
+                                                                           "usb_c_charger":  3
+                                                                       },
+                                                   "depot_trucks_available":  1,
+                                                   "inbound_procurements":  [
+
+                                                                            ],
+                                                   "demand_reports":  [
+                                                                          "south:usb_c_charger req=0 risk=0 miss=0 fc=1 urg=1"
+                                                                      ],
+                                                   "market_requests":  [
+                                                                           "north:fresh_milkx3u2",
+                                                                           "south:fresh_milkx1u1",
+                                                                           "south:rice_bag_5kgx1u1",
+                                                                           "south:usb_c_chargerx2u2",
+                                                                           "west:fresh_milkx2u2",
+                                                                           "central:rice_bag_5kgx1u1"
+                                                                       ],
+                                                   "market_offers":  [
+                                                                         "east:insulin_packx4@7.77",
+                                                                         "central:insulin_packx3@10.23"
+                                                                     ],
+                                                   "pressure":  "Highest visible pressure: south needs 0 usb_c_charger."
+                                               },
+                       "action":  {
+                                      "central_replenishments":  [
+                                                                     {
+                                                                         "to_warehouse":  "north",
+                                                                         "sku":  "fresh_milk",
+                                                                         "units":  4
+                                                                     }
+                                                                 ]
+                                  },
+                       "reasoning":  "sent depot fresh_milkx4 to highest visible pressure north",
+                       "reward":  1.663,
+                       "cumulative_reward":  -18.017,
+                       "components":  {
+                                          "central_replenishment_cost":  -8.8,
+                                          "central_replenishment_bonus":  1.0,
+                                          "fulfilled_order_value":  62.5,
+                                          "delivery_cost":  -4.0,
+                                          "holding_cost":  -4.73,
+                                          "fairness_penalty":  -44.307
+                                      },
+                       "events":  [
+                                      "central depot sent 4 fresh_milk to north",
+                                      "north local agent fulfilled 1 rice_bag_5kg",
+                                      "east local agent fulfilled 3 fresh_milk"
+                                  ],
+                       "negotiation_trace":  [
+
+                                             ],
+                       "done":  false
+                   },
+                   {
+                       "round_index":  27,
+                       "observation_summary":  {
+                                                   "round_index":  27,
+                                                   "remaining_rounds":  3,
+                                                   "depot_inventory":  {
+                                                                           "fresh_milk":  0,
+                                                                           "rice_bag_5kg":  6,
+                                                                           "insulin_pack":  5,
+                                                                           "usb_c_charger":  3
+                                                                       },
+                                                   "depot_trucks_available":  0,
+                                                   "inbound_procurements":  [
+
+                                                                            ],
+                                                   "demand_reports":  [
+                                                                          "east:fresh_milk req=1 risk=0 miss=0 fc=2 urg=1",
+                                                                          "south:usb_c_charger req=0 risk=0 miss=0 fc=1 urg=1"
+                                                                      ],
+                                                   "market_requests":  [
+                                                                           "north:rice_bag_5kgx1u1",
+                                                                           "east:fresh_milkx3u2",
+                                                                           "south:fresh_milkx1u1",
+                                                                           "south:rice_bag_5kgx1u1",
+                                                                           "south:usb_c_chargerx2u2",
+                                                                           "west:fresh_milkx2u2",
+                                                                           "central:rice_bag_5kgx1u1"
+                                                                       ],
+                                                   "market_offers":  [
+                                                                         "east:insulin_packx4@7.77",
+                                                                         "central:insulin_packx3@10.23"
+                                                                     ],
+                                                   "pressure":  "Highest visible pressure: east needs 1 fresh_milk."
+                                               },
+                       "action":  {
+
+                                  },
+                       "reasoning":  "held action: local stock/offers looked sufficient or central assets unavailable",
+                       "reward":  -3.947,
+                       "cumulative_reward":  -21.964,
+                       "components":  {
+                                          "fulfilled_order_value":  42.5,
+                                          "delivery_cost":  -2.0,
+                                          "holding_cost":  -4.62,
+                                          "fairness_penalty":  -39.827
+                                      },
+                       "events":  [
+                                      "east local agent fulfilled 1 fresh_milk",
+                                      "south local agent fulfilled 1 insulin_pack"
+                                  ],
+                       "negotiation_trace":  [
+
+                                             ],
+                       "done":  false
+                   },
+                   {
+                       "round_index":  28,
+                       "observation_summary":  {
+                                                   "round_index":  28,
+                                                   "remaining_rounds":  2,
+                                                   "depot_inventory":  {
+                                                                           "fresh_milk":  0,
+                                                                           "rice_bag_5kg":  6,
+                                                                           "insulin_pack":  5,
+                                                                           "usb_c_charger":  3
+                                                                       },
+                                                   "depot_trucks_available":  1,
+                                                   "inbound_procurements":  [
+
+                                                                            ],
+                                                   "demand_reports":  [
+                                                                          "east:fresh_milk req=0 risk=0 miss=0 fc=2 urg=1",
+                                                                          "south:usb_c_charger req=0 risk=0 miss=0 fc=1 urg=1"
+                                                                      ],
+                                                   "market_requests":  [
+                                                                           "north:rice_bag_5kgx1u1",
+                                                                           "east:fresh_milkx4u2",
+                                                                           "south:fresh_milkx1u1",
+                                                                           "south:rice_bag_5kgx1u1",
+                                                                           "south:insulin_packx1u1",
+                                                                           "south:usb_c_chargerx2u2",
+                                                                           "west:fresh_milkx2u2",
+                                                                           "central:rice_bag_5kgx1u1"
+                                                                       ],
+                                                   "market_offers":  [
+                                                                         "east:insulin_packx3@7.77",
+                                                                         "central:insulin_packx3@10.23"
+                                                                     ],
+                                                   "pressure":  "Highest visible pressure: east needs 0 fresh_milk."
+                                               },
+                       "action":  {
+                                      "offer_matches":  [
+                                                            {
+                                                                "offer_signal_id":  "east:offer:insulin_pack",
+                                                                "request_signal_id":  "south:request:insulin_pack",
+                                                                "units":  1
+                                                            }
+                                                        ]
+                                  },
+                       "reasoning":  "matched 1 insulin_pack from east to south",
+                       "reward":  -2.579,
+                       "cumulative_reward":  -24.542,
+                       "components":  {
+                                          "transfer_cost":  -1.575,
+                                          "accepted_trade_bonus":  0.4,
+                                          "fulfilled_order_value":  41.0,
+                                          "delivery_cost":  -2.0,
+                                          "holding_cost":  -4.51,
+                                          "fairness_penalty":  -38.394,
+                                          "coalition_bonus":  2.5
+                                      },
+                       "events":  [
+                                      "central approved 1 insulin_pack from east to south via transfer truck capacity",
+                                      "east transferred 1 insulin_pack to south",
+                                      "east local agent fulfilled 1 usb_c_charger",
+                                      "central local agent fulfilled 1 rice_bag_5kg"
+                                  ],
+                       "negotiation_trace":  [
+                                                 {
+                                                     "actor":  "east",
+                                                     "proposal_type":  "inventory_transfer",
+                                                     "status":  "accepted",
+                                                     "summary":  "accepted fair compensation",
+                                                     "local_utility_delta":  7.77
+                                                 }
+                                             ],
+                       "done":  false
+                   },
+                   {
+                       "round_index":  29,
+                       "observation_summary":  {
+                                                   "round_index":  29,
+                                                   "remaining_rounds":  1,
+                                                   "depot_inventory":  {
+                                                                           "fresh_milk":  0,
+                                                                           "rice_bag_5kg":  6,
+                                                                           "insulin_pack":  5,
+                                                                           "usb_c_charger":  3
+                                                                       },
+                                                   "depot_trucks_available":  1,
+                                                   "inbound_procurements":  [
+
+                                                                            ],
+                                                   "demand_reports":  [
+                                                                          "east:fresh_milk req=0 risk=0 miss=0 fc=2 urg=1",
+                                                                          "south:insulin_pack req=2 risk=2 miss=0 fc=2 urg=3",
+                                                                          "south:usb_c_charger req=0 risk=0 miss=0 fc=1 urg=1",
+                                                                          "west:fresh_milk req=2 risk=2 miss=0 fc=4 urg=3"
+                                                                      ],
+                                                   "market_requests":  [
+                                                                           "north:rice_bag_5kgx1u1",
+                                                                           "east:fresh_milkx4u2",
+                                                                           "east:usb_c_chargerx1u1",
+                                                                           "south:fresh_milkx1u1",
+                                                                           "south:rice_bag_5kgx1u1",
+                                                                           "south:usb_c_chargerx2u2",
+                                                                           "west:fresh_milkx2u2",
+                                                                           "central:rice_bag_5kgx2u2"
+                                                                       ],
+                                                   "market_offers":  [
+                                                                         "east:insulin_packx4@7.71",
+                                                                         "central:insulin_packx3@10.23"
+                                                                     ],
+                                                   "pressure":  "2 urgent warehouse demand report(s) need allocation."
+                                               },
+                       "action":  {
+
+                                  },
+                       "reasoning":  "held action: local stock/offers looked sufficient or central assets unavailable",
+                       "reward":  28.284,
+                       "cumulative_reward":  3.741,
+                       "components":  {
+                                          "fulfilled_order_value":  84.0,
+                                          "delivery_cost":  -4.0,
+                                          "holding_cost":  -4.29,
+                                          "fairness_penalty":  -47.426
+                                      },
+                       "events":  [
+                                      "south local agent fulfilled 2 insulin_pack",
+                                      "west local agent fulfilled 2 fresh_milk"
+                                  ],
+                       "negotiation_trace":  [
+
+                                             ],
+                       "done":  true
+                   }
+               ],
+    "final_episode_summary":  {
+                                  "final_round_index":  30,
+                                  "total_reward":  3.741,
+                                  "last_step_reward":  28.284,
+                                  "final_components":  {
+                                                           "fulfilled_order_value":  84.0,
+                                                           "delivery_cost":  -4.0,
+                                                           "holding_cost":  -4.29,
+                                                           "fairness_penalty":  -47.426
+                                                       },
+                                  "final_agent_rewards":  {
+                                                              "north":  215.08,
+                                                              "east":  232.73,
+                                                              "south":  419.46,
+                                                              "west":  400.71,
+                                                              "central":  387.2
+                                                          },
+                                  "graded_score":  null,
+                                  "final_pressure":  "Highest visible pressure: east needs 0 fresh_milk.",
+                                  "final_depot_inventory":  {
+                                                                "fresh_milk":  0,
+                                                                "rice_bag_5kg":  6,
+                                                                "insulin_pack":  5,
+                                                                "usb_c_charger":  3
+                                                            },
+                                  "final_events":  [
+                                                       "south local agent fulfilled 2 insulin_pack",
+                                                       "west local agent fulfilled 2 fresh_milk"
+                                                   ]
+                              }
+}
