@@ -1,0 +1,329 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SupplyMind</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #172033;
+      --muted: #64748b;
+      --line: #d8e0ec;
+      --panel: #ffffff;
+      --panel-alt: #f8fbff;
+      --bg: #edf3fb;
+      --nav: #10263d;
+      --accent: #2563eb;
+      --accent-2: #0891b2;
+      --accent-soft: #dbeafe;
+      --warn: #b45309;
+      --warn-soft: #fff7ed;
+      --bad: #b42318;
+      --good: #047857;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: Inter, Segoe UI, Arial, sans-serif; background: var(--bg); color: var(--ink); }
+    header { padding: 16px 22px; background: var(--nav); color: white; display: flex; align-items: center; justify-content: space-between; gap: 16px; border-bottom: 1px solid #1e3a5f; }
+    h1 { font-size: 22px; margin: 0; letter-spacing: 0; }
+    main { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(380px, 0.65fr); gap: 16px; padding: 16px; }
+    section, .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 14px; box-shadow: 0 1px 2px rgba(16, 38, 61, 0.04); }
+    h2 { margin: 0 0 10px; font-size: 15px; }
+    .controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    select, input, button, textarea { font: inherit; }
+    select, input { height: 34px; border: 1px solid #cbd5e1; border-radius: 6px; padding: 0 8px; background: white; color: var(--ink); }
+    button { height: 34px; border: 0; border-radius: 6px; padding: 0 12px; background: var(--accent); color: white; cursor: pointer; }
+    button.secondary { background: var(--accent-2); }
+    button.ghost { background: white; color: var(--ink); border: 1px solid var(--line); }
+    button:disabled { opacity: 0.55; cursor: wait; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px; }
+    .card { border: 1px solid var(--line); border-radius: 8px; padding: 12px; background: var(--panel-alt); }
+    .card h3 { margin: 0 0 8px; font-size: 14px; display: flex; justify-content: space-between; gap: 8px; }
+    .muted { color: var(--muted); }
+    .badge { font-size: 12px; border: 1px solid #bfdbfe; padding: 2px 6px; border-radius: 999px; color: #1d4ed8; background: #eff6ff; }
+    .bars { display: grid; gap: 6px; }
+    .barrow { display: grid; grid-template-columns: 96px 1fr 28px; gap: 8px; align-items: center; font-size: 12px; }
+    .bar { height: 8px; border-radius: 999px; background: #e2e8f0; overflow: hidden; }
+    .bar span { display: block; height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent-2)); }
+    .orders { display: grid; gap: 8px; }
+    .order { display: grid; grid-template-columns: 1fr auto; gap: 8px; border-bottom: 1px solid var(--line); padding-bottom: 8px; font-size: 13px; }
+    .report-meta { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+    .chip { display: inline-flex; align-items: center; min-height: 22px; border-radius: 999px; padding: 2px 7px; border: 1px solid var(--line); font-size: 12px; color: var(--muted); background: white; }
+    .chip.hot { border-color: #fedf89; background: var(--warn-soft); color: var(--warn); }
+    .chip.good { border-color: #a6f4c5; background: #ecfdf3; color: var(--good); }
+    textarea { width: 100%; min-height: 210px; border: 1px solid var(--line); border-radius: 8px; padding: 10px; font-family: Consolas, monospace; font-size: 12px; resize: vertical; }
+    pre { white-space: pre-wrap; background: #0f172a; color: #e2e8f0; padding: 10px; border-radius: 8px; max-height: 260px; overflow: auto; font-size: 12px; }
+    .stack { display: grid; gap: 12px; }
+    .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px; }
+    .metric { border: 1px solid var(--line); border-radius: 8px; padding: 10px; }
+    .metric strong { display: block; font-size: 18px; }
+    .timeline { display: grid; gap: 8px; max-height: 360px; overflow: auto; }
+    .timeline-item { border: 1px solid var(--line); border-radius: 8px; padding: 10px; background: #fff; }
+    .timeline-item h3 { margin: 0 0 6px; font-size: 13px; display: flex; justify-content: space-between; gap: 8px; }
+    .timeline-item ul { margin: 6px 0 0; padding-left: 18px; }
+    .timeline-item li { margin: 3px 0; font-size: 12px; color: var(--muted); }
+    .decision { background: var(--accent-soft); border-color: #93c5fd; }
+    .component-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 5px; margin-top: 8px; }
+    .component { display: flex; justify-content: space-between; gap: 8px; border-radius: 6px; padding: 4px 6px; background: #f8fafc; font-size: 12px; }
+    .component.positive { color: var(--good); }
+    .component.negative { color: var(--bad); }
+    @media (max-width: 900px) { main { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>SupplyMind</h1>
+    <div class="controls">
+      <select id="task">
+        <option value="cooperative_restock">cooperative_restock</option>
+        <option value="scarcity_negotiation" selected>scarcity_negotiation</option>
+        <option value="crisis_coalition">crisis_coalition</option>
+      </select>
+      <input id="seed" type="number" value="12345" />
+      <button id="reset">Reset</button>
+      <button id="heuristic" class="secondary">Load Heuristic</button>
+      <button id="step">Step</button>
+      <button id="run" class="secondary">Run Episode</button>
+    </div>
+  </header>
+  <main>
+    <div class="stack">
+      <section>
+        <h2>Central Depot</h2>
+        <div id="depot" class="grid"></div>
+      </section>
+      <section>
+        <h2>Warehouses</h2>
+        <div id="warehouses" class="grid"></div>
+      </section>
+      <section>
+        <h2>Warehouse Demand Reports</h2>
+        <div id="reports" class="orders"></div>
+      </section>
+      <section>
+        <h2>Episode Timeline</h2>
+        <div id="timeline" class="timeline"></div>
+      </section>
+      <section>
+        <h2>Market Signals</h2>
+        <pre id="signals">[]</pre>
+      </section>
+      <section>
+        <h2>Negotiation Trace</h2>
+        <pre id="trace">[]</pre>
+      </section>
+    </div>
+    <aside class="stack">
+      <section>
+        <h2>Round & Reward</h2>
+        <div id="metrics" class="metrics"></div>
+      </section>
+      <section>
+        <h2>Action JSON</h2>
+        <textarea id="action">{"central_replenishments":[],"inventory_transfers":[],"offer_matches":[],"priority_policy":[],"defer_orders":[],"coalition_deals":[]}</textarea>
+      </section>
+      <section>
+        <h2>Events</h2>
+        <pre id="events">[]</pre>
+      </section>
+      <section>
+        <h2>Reward Components</h2>
+        <pre id="components">{}</pre>
+      </section>
+    </aside>
+  </main>
+  <script>
+    let state = null;
+    let episode = [];
+    let running = false;
+    const $ = (id) => document.getElementById(id);
+
+    async function reset() {
+      const task = $("task").value;
+      const seed = $("seed").value;
+      const res = await fetch(`/reset?task_id=${encodeURIComponent(task)}&seed=${encodeURIComponent(seed)}`, { method: "POST" });
+      state = await res.json();
+      episode = [{
+        round: state.round_index,
+        reward: 0,
+        cumulative: state.feedback.cumulative_reward,
+        decision: emptyAction(),
+        events: ["episode reset"],
+        reports: state.demand_reports.length
+      }];
+      $("action").value = JSON.stringify(emptyAction(), null, 2);
+      render();
+    }
+
+    async function loadHeuristic() {
+      const res = await fetch("/heuristic-action");
+      $("action").value = JSON.stringify(await res.json(), null, 2);
+    }
+
+    function emptyAction() {
+      return {
+        central_replenishments: [],
+        inventory_transfers: [],
+        offer_matches: [],
+        priority_policy: [],
+        defer_orders: [],
+        coalition_deals: []
+      };
+    }
+
+    async function step() {
+      let payload;
+      try { payload = JSON.parse($("action").value); }
+      catch (err) { alert("Invalid JSON action"); return; }
+      const beforeRound = state ? state.round_index : 0;
+      const res = await fetch("/step", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      state = data.observation;
+      episode.push({
+        round: beforeRound,
+        reward: data.reward.step_reward,
+        cumulative: data.reward.cumulative_reward,
+        decision: payload,
+        events: state.feedback.recent_events,
+        components: data.reward.components,
+        reports: state.demand_reports.length,
+        done: data.done
+      });
+      render(data);
+      await loadHeuristic();
+      return data.done;
+    }
+
+    async function runEpisode() {
+      if (running) return;
+      running = true;
+      setBusy(true);
+      try {
+        await loadHeuristic();
+        let done = false;
+        let guard = 0;
+        while (!done && guard < 20) {
+          done = await step();
+          guard += 1;
+          await new Promise(resolve => setTimeout(resolve, 160));
+        }
+      } finally {
+        running = false;
+        setBusy(false);
+      }
+    }
+
+    function setBusy(value) {
+      $("reset").disabled = value;
+      $("heuristic").disabled = value;
+      $("step").disabled = value;
+      $("run").disabled = value;
+    }
+
+    function render(lastStep) {
+      if (!state) return;
+      $("depot").innerHTML = `
+        <div class="card">
+          <h3>Central Depot<span class="badge">${state.central_depot.trucks_available} truck(s)</span></h3>
+          <div class="muted">${state.central_depot.message}</div>
+          <div class="bars" style="margin-top:10px">
+            ${Object.entries(state.central_depot.inventory).map(([sku, units]) => `
+              <div class="barrow"><span>${sku}</span><div class="bar"><span style="width:${Math.min(100, units * 10)}%"></span></div><span>${units}</span></div>
+            `).join("")}
+          </div>
+          <p class="muted">Returning trucks [${state.central_depot.trucks_returning.join(", ")}], cap ${state.central_depot.replenishment_cap}</p>
+        </div>`;
+      $("warehouses").innerHTML = state.warehouses.map(w => `
+        <div class="card">
+          <h3>${w.label}<span class="badge">${w.region}</span></h3>
+          <div class="muted">${w.public_message}</div>
+          <div class="bars" style="margin-top:10px">
+            ${Object.entries(w.inventory).map(([sku, units]) => `
+              <div class="barrow"><span>${sku}</span><div class="bar"><span style="width:${Math.min(100, units * 10)}%"></span></div><span>${units}</span></div>
+            `).join("")}
+          </div>
+          <p class="muted">Drivers: ${w.drivers_available} available, returning [${w.drivers_returning.join(", ")}]</p>
+          <p class="muted">${routeSummary(w.route_costs)}</p>
+          <p class="muted">Local utility ${state.feedback.agent_rewards[w.warehouse_id] ?? 0}</p>
+        </div>`).join("");
+      $("reports").innerHTML = state.demand_reports.length ? state.demand_reports.map(r => `
+        <div class="order">
+          <div>
+            <strong>${r.warehouse_id}</strong> ${r.sku} in ${r.region}<br>
+            <span class="muted">${r.message}</span>
+            <div class="report-meta">
+              <span class="chip ${r.urgency >= 3 ? "hot" : ""}">urgency ${r.urgency}</span>
+              <span class="chip">requested ${r.requested_units}</span>
+              <span class="chip">forecast ${r.forecast_units}</span>
+              <span class="chip ${r.missed_units_last_round > 0 ? "hot" : ""}">missed ${r.missed_units_last_round}</span>
+              <span class="chip ${r.fulfilled_units_last_round > 0 ? "good" : ""}">fulfilled ${r.fulfilled_units_last_round}</span>
+            </div>
+          </div>
+          <div>${r.at_risk_units} at risk</div>
+        </div>`).join("") : "<p class='muted'>No demand reports.</p>";
+      $("metrics").innerHTML = `
+        <div class="metric"><span class="muted">Round</span><strong>${state.round_index}</strong></div>
+        <div class="metric"><span class="muted">Remaining</span><strong>${state.remaining_rounds}</strong></div>
+        <div class="metric"><span class="muted">Last reward</span><strong>${state.feedback.last_step_reward}</strong></div>
+        <div class="metric"><span class="muted">Cumulative</span><strong>${state.feedback.cumulative_reward}</strong></div>`;
+      $("events").textContent = JSON.stringify(state.feedback.recent_events, null, 2);
+      $("signals").textContent = JSON.stringify(state.market_signals, null, 2);
+      $("trace").textContent = JSON.stringify(state.feedback.negotiation_trace, null, 2);
+      $("components").textContent = JSON.stringify(state.feedback.reward_components, null, 2);
+      $("timeline").innerHTML = episode.slice().reverse().map(item => `
+        <div class="timeline-item ${hasDecision(item.decision) ? "decision" : ""}">
+          <h3>Round ${item.round}<span>${Number(item.reward).toFixed(2)}</span></h3>
+          <div class="muted">cumulative ${Number(item.cumulative).toFixed(2)} · next reports ${item.reports}${item.done ? " · done" : ""}</div>
+          <div class="report-meta">${decisionChips(item.decision)}</div>
+          <ul>${(item.events || []).slice(0, 5).map(event => `<li>${event}</li>`).join("")}</ul>
+          <div class="component-grid">${componentBreakdown(item.components)}</div>
+        </div>
+      `).join("");
+    }
+
+    function hasDecision(action) {
+      return Object.values(action || {}).some(value => Array.isArray(value) && value.length > 0);
+    }
+
+    function decisionChips(action) {
+      const current = action || emptyAction();
+      const chips = [
+        ["depot", current.central_replenishments?.length || 0],
+        ["transfers", current.inventory_transfers?.length || 0],
+        ["matches", current.offer_matches?.length || 0],
+        ["defers", current.defer_orders?.length || 0]
+      ];
+      return chips.map(([label, count]) => `<span class="chip ${count ? "good" : ""}">${label} ${count}</span>`).join("");
+    }
+
+    function componentBreakdown(components) {
+      const entries = Object.entries(components || {}).sort((a, b) => Math.abs(b[1]) - Math.abs(a[1])).slice(0, 6);
+      if (!entries.length) return "";
+      return entries.map(([key, value]) => `
+        <div class="component ${value >= 0 ? "positive" : "negative"}">
+          <span>${key}</span><strong>${Number(value).toFixed(2)}</strong>
+        </div>
+      `).join("");
+    }
+
+    function routeSummary(costs) {
+      const entries = Object.entries(costs || {});
+      if (!entries.length) return "Route costs unavailable";
+      const sorted = entries.sort((a, b) => a[1] - b[1]);
+      const near = sorted[0];
+      const far = sorted[sorted.length - 1];
+      return `Routes: nearest ${near[0]} ${Number(near[1]).toFixed(1)}, farthest ${far[0]} ${Number(far[1]).toFixed(1)}`;
+    }
+
+    $("reset").onclick = reset;
+    $("heuristic").onclick = loadHeuristic;
+    $("step").onclick = step;
+    $("run").onclick = runEpisode;
+    reset().then(loadHeuristic);
+  </script>
+</body>
+</html>

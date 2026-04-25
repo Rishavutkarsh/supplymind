@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "supplymind"
+version = "0.1.0"
+description = "OpenEnv supply network environment for sequential agent evaluation."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+  "openenv-core>=0.2.0",
+  "pydantic==2.12.5",
+  "openai==2.30.0",
+  "fastapi==0.135.2",
+  "uvicorn==0.42.0",
+  "pyyaml==6.0.1",
+  "requests==2.32.3",
+]
+
+[project.scripts]
+server = "server.app:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+

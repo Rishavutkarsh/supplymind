@@ -1,0 +1,28 @@
+name: supplymind-openenv
+version: 0.1.0
+description: >
+  Multi-agent warehouse orchestration benchmark with partial observability,
+  local incentives, customer orders, delivery drivers, transfer friction,
+  and bounded sequential planning.
+entrypoints:
+  python_api: src/supplymind_env/environment.py
+  inference: inference.py
+  http_api: src/supplymind_env/api.py
+  preflight: validate_submission.py
+models:
+  observation: supplymind_env.models.V3Observation
+  action: supplymind_env.models.V3Action
+  reward: supplymind_env.models.V3Reward
+tasks:
+  - id: cooperative_restock
+    difficulty: easy
+  - id: scarcity_negotiation
+    difficulty: medium
+  - id: crisis_coalition
+    difficulty: hard
+validation:
+  required_methods:
+    - reset
+    - state
+    - step
+
