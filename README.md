@@ -287,6 +287,7 @@ POST /v2/reset
 GET  /v2/state
 POST /v2/step
 GET  /v2/heuristic-joint-action
+GET  /v2/rules
 GET  /v2/ui
 ```
 
@@ -295,6 +296,8 @@ The V2 UI is served at:
 ```text
 http://127.0.0.1:7860/v2/ui
 ```
+
+The public rules contract is served at `/v2/rules` and is also linked from `scenario_info.public_rules` in every V2 observation. It includes role definitions, item prices, order penalties, operating costs, transfer costs, and the action schema. It does not reveal future orders, hidden seed recipes, baseline rewards, target rewards, or the reference planner.
 
 V2 tracks three reward views:
 

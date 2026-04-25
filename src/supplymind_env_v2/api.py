@@ -7,6 +7,7 @@ from .environment import V2SupplyMindEnv
 from .generator import PUBLIC_TASK_IDS
 from .models import V2JointAction
 from .policies import heuristic_joint_policy
+from .rules import public_rules
 
 
 def create_v2_router() -> APIRouter:
@@ -30,6 +31,10 @@ def create_v2_router() -> APIRouter:
     @router.get("/heuristic-joint-action")
     def heuristic_joint_action() -> dict:
         return heuristic_joint_policy(env.state()).model_dump(mode="json")
+
+    @router.get("/rules")
+    def rules() -> dict:
+        return public_rules()
 
     @router.get("/ui", response_class=HTMLResponse)
     def ui() -> str:

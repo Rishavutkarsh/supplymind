@@ -19,6 +19,7 @@ from .models import (
     V2StepResult,
     WarehouseObservation,
 )
+from .rules import compact_public_rules
 
 
 class V2SupplyMindEnv:
@@ -135,6 +136,17 @@ class V2SupplyMindEnv:
             round_index=self.round_index,
             remaining_rounds=max(0, recipe.profile.total_rounds - self.round_index),
             task_id=self.task_id,
+            scenario_info={
+                "task_id": self.task_id,
+                "seed": self.public_seed,
+                "warehouse_count": recipe.profile.warehouse_count,
+                "total_rounds": recipe.profile.total_rounds,
+                "depot_replenishment_cap": recipe.profile.depot_replenishment_cap,
+                "depot_procurement_cap": recipe.profile.depot_procurement_cap,
+                "depot_procurement_lead_time": recipe.profile.depot_procurement_lead_time,
+                "transfer_cap": recipe.profile.transfer_cap,
+                "public_rules": compact_public_rules(),
+            },
             center=CenterObservation(
                 round_index=self.round_index,
                 remaining_rounds=max(0, recipe.profile.total_rounds - self.round_index),

@@ -188,6 +188,7 @@ class V2Observation(BaseModel):
     round_index: int
     remaining_rounds: int
     task_id: str
+    scenario_info: dict[str, Any] = Field(default_factory=dict)
     center: CenterObservation
     warehouses: dict[str, WarehouseObservation]
     feedback: dict[str, Any] = Field(default_factory=dict)
