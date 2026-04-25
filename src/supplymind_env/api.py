@@ -9,11 +9,13 @@ from .models import V3Action
 from .policies import heuristic_policy
 from .subagent import SUBAGENT_SYSTEM_PROMPT, build_subagent_prompt, prompted_subagent_policy
 from .task_adapter import PUBLIC_TASK_IDS, is_public_task_id
+from supplymind_env_v2.api import create_v2_router
 
 
 def create_app() -> FastAPI:
     app = FastAPI(title="SupplyMind Benchmark")
     env = V3SupplyMindEnv()
+    app.include_router(create_v2_router())
 
     @app.get("/health")
     def health() -> dict[str, str]:

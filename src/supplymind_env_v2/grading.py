@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from functools import lru_cache
 
-from .environment import V3SupplyMindEnv
-from .models import V3TaskResult
-from .policies import baseline_policy, heuristic_policy
+from .environment import V2SupplyMindEnv
+from .models import V2TaskResult
+from .policies import heuristic_joint_policy, naive_joint_policy
 from .solver import rollout_reference
 
 
@@ -13,26 +13,24 @@ BASELINE_SCORE_ANCHOR = 0.05
 REFERENCE_SCORE_ANCHOR = 0.95
 
 
-def grade_episode(task_id: str, seed: int, raw_reward: float) -> V3TaskResult:
+def grade_episode(task_id: str, seed: int, raw_reward: float, center_reward: float, average_warehouse_reward: float) -> V2TaskResult:
     baseline_reward = cached_rollout_policy(task_id, seed, "baseline")
-    heuristic_reward = cached_rollout_policy(task_id, seed, "heuristic")
-    target_reward = cached_reference_reward(task_id, seed)
-    target_reward = max(target_reward, baseline_reward + 20.0)
-    score = normalize_score(raw_reward, baseline_reward, target_reward)
-    return V3TaskResult(
+    target_reward = max(cached_reference_reward(task_id, seed), baseline_reward + 20.0)
+    return V2TaskResult(
         task_id=task_id,
         raw_reward=raw_reward,
         baseline_reward=baseline_reward,
         target_reward=target_reward,
-        score=score,
-        heuristic_reward=heuristic_reward,
+        score=normalize_score(raw_reward, baseline_reward, target_reward),
+        center_reward=center_reward,
+        average_warehouse_reward=average_warehouse_reward,
     )
 
 
 def rollout_policy(task_id: str, seed: int, policy_name: str) -> float:
-    env = V3SupplyMindEnv(default_task_id=task_id)
-    observation = env.reset_internal(task_id=task_id, internal_seed=seed)
-    policy = baseline_policy if policy_name == "baseline" else heuristic_policy
+    env = V2SupplyMindEnv(default_task_id=task_id)
+    observation = env.reset_internal(task_id, seed)
+    policy = naive_joint_policy if policy_name == "baseline" else heuristic_joint_policy
     while not env.done:
         result = env.step(policy(observation), grade_terminal=False)
         observation = result.observation
@@ -54,10 +52,9 @@ def normalize_score(raw_reward: float, baseline_reward: float, target_reward: fl
     upper = 1.0 - STRICT_SCORE_EPSILON
     if target_reward <= baseline_reward:
         return REFERENCE_SCORE_ANCHOR if raw_reward >= target_reward else BASELINE_SCORE_ANCHOR
-    normalized = (raw_reward - baseline_reward) / (target_reward - baseline_reward)
-    if normalized <= 1.0:
-        score = BASELINE_SCORE_ANCHOR + normalized * (REFERENCE_SCORE_ANCHOR - BASELINE_SCORE_ANCHOR)
+    progress = (raw_reward - baseline_reward) / (target_reward - baseline_reward)
+    if progress <= 1:
+        score = BASELINE_SCORE_ANCHOR + progress * (REFERENCE_SCORE_ANCHOR - BASELINE_SCORE_ANCHOR)
     else:
-        bonus = min(1.0, normalized - 1.0) * (upper - REFERENCE_SCORE_ANCHOR)
-        score = REFERENCE_SCORE_ANCHOR + bonus
+        score = REFERENCE_SCORE_ANCHOR + min(progress - 1, 1.0) * (upper - REFERENCE_SCORE_ANCHOR)
     return max(lower, min(upper, score))

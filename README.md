@@ -217,19 +217,30 @@ The score is normalized against:
 
 - a simple baseline policy
 - a negotiation heuristic
-- a privileged reference policy with extra internal information
+- a privileged bounded lookahead planner with extra internal information
 
-The reference is a strong anchor, not a mathematically proven optimum.
+The reference is a strong anchor, not a mathematically proven optimum. The planner simulates a capped set of candidate actions over a short horizon and uses hidden environment state only for grading/reference, not for the public agent observation.
+
+```text
+progress = (raw_reward - baseline_reward) / (reference_reward - baseline_reward)
+
+if progress <= 1:
+  score = 0.05 + progress * (0.95 - 0.05)
+else:
+  score = 0.95 + min(progress - 1, 1.0) * (0.9999 - 0.95)
+```
+
+The baseline maps to about `0.05`. The privileged planner maps to `0.95`. Agents that beat the planner can score above `0.95`.
 
 ## Current Evaluation Snapshot
 
 Recent local evaluation over the seeded policy suite:
 
 ```text
-no_op:                mean_score 0.0718
+no_op:                 mean_score 0.0533
 reactive_baseline:    mean_score 0.0500
-negotiation_heuristic: mean_score 0.4011
-privileged_reference: mean_score 0.9999
+negotiation_heuristic: mean_score 0.2897
+privileged_reference:  mean_score 0.9500
 ```
 
 The long-horizon hard task is intentionally challenging. The current fallback heuristic is not final; it is mainly a reproducible baseline for comparison.
@@ -253,6 +264,65 @@ The UI shows:
 - reward breakdown per round
 
 Use **Run Episode** to watch the central policy act across the full episode.
+
+### SupplyMind V2 Preview
+
+SupplyMind V2 is implemented side-by-side with the stable V1 environment. It turns the warehouse layer into explicit local agents while keeping one official benchmark score.
+
+V2 adds two trainable roles:
+
+- a **central wholesaler/coordinator** that buys stock, holds depot inventory, sells to warehouses, and brokers transfers
+- a **shared warehouse policy** copied across every warehouse, where each warehouse accepts/rejects local orders, publishes offers/requests, and accepts/rejects transfer proposals
+
+The business model is closer to a Blinkit/Zepto-style regional supply network:
+
+```text
+supplier -> center -> warehouse -> customer
+```
+
+V2 exposes:
+
+```text
+POST /v2/reset
+GET  /v2/state
+POST /v2/step
+GET  /v2/heuristic-joint-action
+GET  /v2/ui
+```
+
+The V2 UI is served at:
+
+```text
+http://127.0.0.1:7860/v2/ui
+```
+
+V2 tracks three reward views:
+
+- **global welfare**, used for official grading
+- **center reward**, used to train/evaluate the central coordinator
+- **per-warehouse rewards**, used to train/evaluate the shared warehouse policy
+
+The V2 grading formula is the same normalized scheme:
+
+```text
+progress = (raw_global_reward - baseline_reward) / (target_reward - baseline_reward)
+
+if progress <= 1:
+  score = 0.05 + progress * (0.95 - 0.05)
+else:
+  score = 0.95 + min(progress - 1, 1.0) * (0.9999 - 0.95)
+```
+
+The baseline is a naive joint policy. The target is a bounded privileged planner/reference policy, not a claimed mathematical optimum. This keeps the score fair enough for comparison while allowing a trained policy to beat the reference on some seeds.
+
+Current V2 local smoke evaluation:
+
+```text
+no_op:                mean_score 0.0001
+naive_joint:          mean_score 0.0500
+heuristic_joint:      mean_score 0.5539
+privileged_reference: mean_score 0.9500
+```
 
 ## Running Locally
 

@@ -181,6 +181,7 @@ class V3SupplyMindEnv:
                 reward_components=dict(self.last_components),
                 agent_rewards={key: round(value, 3) for key, value in self.local_utility.items()},
                 current_pressure=_pressure_summary_from_reports(demand_reports),
+                episode_summary=None if self.last_episode_summary is None else dict(self.last_episode_summary),
             ),
             scenario_info=V3ScenarioInfo(
                 task_id=self.task_id,

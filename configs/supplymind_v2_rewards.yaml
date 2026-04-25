@@ -1,0 +1,55 @@
+price_bands:
+  fresh_milk:
+    procurement_cost: 4.0
+    fair_wholesale_price: 6.0
+    max_wholesale_price: 8.0
+    customer_value: 12.0
+  rice_bag_5kg:
+    procurement_cost: 3.0
+    fair_wholesale_price: 5.0
+    max_wholesale_price: 7.0
+    customer_value: 10.0
+  insulin_pack:
+    procurement_cost: 8.0
+    fair_wholesale_price: 12.0
+    max_wholesale_price: 16.0
+    customer_value: 22.0
+  usb_c_charger:
+    procurement_cost: 9.0
+    fair_wholesale_price: 14.0
+    max_wholesale_price: 18.0
+    customer_value: 24.0
+
+order_rewards:
+  reject_penalty_multiplier: 0.15
+  accepted_missed_penalty_multiplier: 0.70
+  silent_expiry_penalty_multiplier: 1.00
+
+center_rewards:
+  transfer_broker_fee_per_unit: 0.30
+  rejected_transfer_penalty: 1.00
+  warehouse_spoilage_share: 0.20
+  depot_spoilage_share: 1.00
+  terminal_depot_inventory_share: 1.00
+  terminal_warehouse_inventory_share: 0.20
+  network_stockout_share: 0.25
+  trust_loss_penalty: 2.00
+  depot_holding_cost_per_unit: 0.04
+
+warehouse_rewards:
+  warehouse_spoilage_share: 0.80
+  terminal_inventory_share: 0.80
+  local_stockout_share: 0.75
+  holding_cost_per_unit: 0.05
+  transfer_sacrifice_cost_per_unit: 0.20
+
+global_rewards:
+  fulfilled_value_multiplier: 1.0
+  procurement_cost_multiplier: 1.0
+  delivery_cost_multiplier: 1.0
+  shipment_cost_multiplier: 1.0
+  transfer_cost_multiplier: 1.0
+  spoilage_cost_multiplier: 1.0
+  stockout_penalty_multiplier: 1.0
+  trust_degradation_penalty: 1.0
+  terminal_inventory_penalty_multiplier: 0.05

@@ -14,6 +14,7 @@ from supplymind_env.environment import V3SupplyMindEnv
 from supplymind_env.models import V3Action, V3Observation
 from supplymind_env.policies import baseline_policy, heuristic_policy, no_op_policy
 from supplymind_env.seed_catalog import EVAL_SEEDS, TASK_IDS
+from supplymind_env.grading import grade_episode
 from supplymind_env.solver import privileged_reference_policy, rollout_reference
 
 
@@ -54,21 +55,16 @@ def run_episode(task_id: str, seed: int, policy: PolicyFn) -> dict[str, object]:
 
 def run_reference_episode(task_id: str, seed: int) -> dict[str, object]:
     raw_reward = rollout_reference(task_id, seed)
-    env = V3SupplyMindEnv(default_task_id=task_id)
-    observation = env.reset_internal(task_id=task_id, internal_seed=seed, public_seed=seed)
-    result = env.step(V3Action())
-    while not result.done:
-        result = env.step(V3Action())
-    summary = result.info["episode_summary"]
+    task_result = grade_episode(task_id, seed, raw_reward)
     return {
-        "task_id": observation.task_id,
+        "task_id": V3SupplyMindEnv(default_task_id=task_id).reset_internal(task_id=task_id, internal_seed=seed, public_seed=seed).task_id,
         "internal_task_id": task_id,
         "seed": seed,
         "raw_reward": raw_reward,
-        "score": 0.9999,
-        "baseline_reward": summary["baseline_reward"],
-        "heuristic_reward": summary["heuristic_reward"],
-        "target_reward": raw_reward,
+        "score": task_result.score,
+        "baseline_reward": task_result.baseline_reward,
+        "heuristic_reward": task_result.heuristic_reward,
+        "target_reward": task_result.target_reward,
         "step_rewards": [],
     }
 

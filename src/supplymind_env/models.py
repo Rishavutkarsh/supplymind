@@ -241,6 +241,7 @@ class V3Feedback(BaseModel):
     reward_components: dict[str, float] = Field(default_factory=dict)
     agent_rewards: dict[str, float] = Field(default_factory=dict)
     current_pressure: str = ""
+    episode_summary: dict[str, Any] | None = None
 
 
 class V3ScenarioInfo(BaseModel):
