@@ -12,6 +12,7 @@
 from __future__ import annotations
 
 import argparse
+from collections import Counter
 import json
 import os
 import re
@@ -129,6 +130,46 @@ def generate_action(model: Any, tokenizer: Any, role: str, observation: Any, max
     return extract_json(generated), generated
 
 
+def _len_list(payload: dict[str, Any], key: str) -> int:
+    value = payload.get(key, [])
+    return len(value) if isinstance(value, list) else 0
+
+
+def center_action_stats(payload: dict[str, Any] | None) -> dict[str, int]:
+    payload = payload or {}
+    return {
+        "central_procurements": _len_list(payload, "central_procurements"),
+        "central_liquidations": _len_list(payload, "central_liquidations"),
+        "central_replenishments": _len_list(payload, "central_replenishments"),
+        "inventory_transfer_proposals": _len_list(payload, "inventory_transfer_proposals"),
+        "offer_matches": _len_list(payload, "offer_matches"),
+    }
+
+
+def warehouse_action_stats(payload: dict[str, Any] | None) -> dict[str, int]:
+    payload = payload or {}
+    warehouses = payload.get("warehouse_actions", {})
+    if not isinstance(warehouses, dict):
+        warehouses = {}
+    stats = {
+        "warehouses_controlled": len(warehouses),
+        "order_decisions": 0,
+        "inventory_offers": 0,
+        "inventory_requests": 0,
+        "transfer_responses": 0,
+        "local_priority": 0,
+    }
+    for action in warehouses.values():
+        if isinstance(action, dict):
+            for key in ("order_decisions", "inventory_offers", "inventory_requests", "transfer_responses", "local_priority"):
+                stats[key] += _len_list(action, key)
+    return stats
+
+
+def action_stats(role: str, payload: dict[str, Any] | None) -> dict[str, int]:
+    return center_action_stats(payload) if role == "center" else warehouse_action_stats(payload)
+
+
 def load_model(adapter_id: str | None = None) -> tuple[Any, Any]:
     tokenizer = AutoTokenizer.from_pretrained(MODEL_ID)
     model = AutoModelForCausalLM.from_pretrained(MODEL_ID, torch_dtype="auto", device_map="auto")
@@ -148,8 +189,16 @@ def rollout(role: str, model: Any, tokenizer: Any, task_id: str, seed: int, max_
     invalid_payloads = 0
     invalid_actions = 0
     steps = 0
+    action_totals: Counter[str] = Counter()
+    parsed_payloads = 0
+    fallback_steps = 0
+    samples: list[dict[str, Any]] = []
     while not env.done:
-        payload, _generated = generate_action(model, tokenizer, role, observation, max_new_tokens)
+        payload, generated = generate_action(model, tokenizer, role, observation, max_new_tokens)
+        parsed_before_validation = payload is not None
+        if parsed_before_validation:
+            parsed_payloads += 1
+            action_totals.update(action_stats(role, payload))
         try:
             if payload is None:
                 raise ValueError("missing_json")
@@ -166,16 +215,40 @@ def rollout(role: str, model: Any, tokenizer: Any, task_id: str, seed: int, max_
                 )
         except Exception:
             invalid_payloads += 1
+            fallback_steps += 1
             if role == "center":
                 action = V2JointAction(warehouse_actions=fixed_warehouse_actions(observation), central_action={})
             else:
                 action = V2JointAction(warehouse_actions={}, central_action=fixed_center_action(observation, {}))
         result = env.step(action)
+        if len(samples) < 3:
+            samples.append(
+                {
+                    "round_index": observation.round_index,
+                    "parsed": parsed_before_validation,
+                    "fallback": payload is None,
+                    "action_stats": action_stats(role, payload),
+                    "generated_preview": generated[:600],
+                    "parsed_payload": payload,
+                    "invalid_action_details": result.observation.feedback.get("invalid_action_details", [])[:5],
+                }
+            )
         invalid_actions += len(result.observation.feedback.get("invalid_action_details", []))
         observation = result.observation
         steps += 1
     summary = dict(env.last_episode_summary or {})
-    summary.update({"seed": seed, "steps": steps, "invalid_payloads": invalid_payloads, "invalid_actions": invalid_actions})
+    summary.update(
+        {
+            "seed": seed,
+            "steps": steps,
+            "invalid_payloads": invalid_payloads,
+            "invalid_actions": invalid_actions,
+            "parsed_payloads": parsed_payloads,
+            "fallback_steps": fallback_steps,
+            "action_totals": dict(action_totals),
+            "samples": samples,
+        }
+    )
     return summary
 
 
@@ -191,6 +264,14 @@ def evaluate(role: str, label: str, model: Any, tokenizer: Any, task_id: str, se
         "mean_raw_reward": mean(float(row.get("raw_reward", 0.0)) for row in episodes),
         "invalid_payloads": sum(int(row["invalid_payloads"]) for row in episodes),
         "invalid_actions": sum(int(row["invalid_actions"]) for row in episodes),
+        "parsed_payloads": sum(int(row.get("parsed_payloads", 0)) for row in episodes),
+        "fallback_steps": sum(int(row.get("fallback_steps", 0)) for row in episodes),
+        "action_totals": dict(sum((Counter(row.get("action_totals", {})) for row in episodes), Counter())),
+        "sample_generations": [
+            {"seed": row.get("seed"), **sample}
+            for row in episodes
+            for sample in row.get("samples", [])[:1]
+        ][:5],
     }
     log("eval_result", **aggregate)
     return aggregate
