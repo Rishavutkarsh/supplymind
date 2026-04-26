@@ -44,6 +44,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--seeds", default="101,113,127")
     parser.add_argument("--max-steps", type=int, default=80)
     parser.add_argument("--max-length", type=int, default=2048)
+    parser.add_argument("--center-non-empty-weight", type=int, default=3)
     parser.add_argument("--hub-model-id", default="")
     parser.add_argument("--output-dir", default="")
     return parser.parse_args()
@@ -114,7 +115,8 @@ def system_prompt(role: str) -> str:
             "You are the center policy in SupplyMind. Return only strict JSON matching CenterAction: "
             "central_procurements, central_liquidations, central_replenishments, inventory_transfer_proposals, offer_matches. "
             "Warehouses are controlled by a fixed heuristic. Earn margin and a small share of realized service profit, "
-            "but avoid waste, stockouts, overpriced actions, and needless shipments."
+            "but avoid waste, stockouts, overpriced actions, and needless shipments. Empty lists are only appropriate "
+            "when no useful procurement, liquidation, replenishment, transfer proposal, or offer match exists."
         )
     return (
         "You are the shared warehouse policy in SupplyMind, copied across all warehouses. "
@@ -138,6 +140,11 @@ def action_completion_for_warehouse(joint_action: Any, warehouse_id: str) -> str
     return json.dumps(payload, separators=(",", ":"))
 
 
+def center_action_is_empty(center_action: Any) -> bool:
+    data = center_action.model_dump(mode="json")
+    return not any(data.get(key) for key in data)
+
+
 def _chat_text(tokenizer: Any, system: str, user: dict[str, Any], assistant: str | None) -> tuple[str, str]:
     prompt_messages = [
         {"role": "system", "content": system},
@@ -151,38 +158,56 @@ def _chat_text(tokenizer: Any, system: str, user: dict[str, Any], assistant: str
     return prompt_text, full_text
 
 
-def build_rows(role: str, task_id: str, seeds: list[int], tokenizer: Any) -> list[dict[str, str]]:
+def build_rows(role: str, task_ids: list[str], seeds: list[int], tokenizer: Any, center_non_empty_weight: int) -> list[dict[str, str]]:
     from supplymind_env_v2.environment import V2SupplyMindEnv
     from supplymind_env_v2.policies import heuristic_joint_policy
 
     rows: list[dict[str, str]] = []
-    for seed in seeds:
-        env = V2SupplyMindEnv(default_task_id=task_id)
-        observation = env.reset_internal(task_id, seed)
-        while not env.done:
-            joint_action = heuristic_joint_policy(observation)
-            if role == "center":
-                user = compact_observation(observation, role)
-                completion = action_completion(role, joint_action)
-                prompt_text, text = _chat_text(tokenizer, system_prompt(role), user, completion)
-                rows.append({"text": text, "prompt_text": prompt_text, "task_id": task_id, "seed": seed, "round_index": observation.round_index})
-            else:
-                for warehouse_id in observation.warehouses:
-                    user = compact_observation(observation, role, warehouse_id)
-                    completion = action_completion_for_warehouse(joint_action, warehouse_id)
+    center_empty = 0
+    center_non_empty = 0
+    for task_id in task_ids:
+        for seed in seeds:
+            env = V2SupplyMindEnv(default_task_id=task_id)
+            observation = env.reset_internal(task_id, seed)
+            while not env.done:
+                joint_action = heuristic_joint_policy(observation)
+                if role == "center":
+                    user = compact_observation(observation, role)
+                    completion = action_completion(role, joint_action)
                     prompt_text, text = _chat_text(tokenizer, system_prompt(role), user, completion)
-                    rows.append(
-                        {
-                            "text": text,
-                            "prompt_text": prompt_text,
-                            "task_id": task_id,
-                            "seed": seed,
-                            "round_index": observation.round_index,
-                            "warehouse_id": warehouse_id,
-                        }
-                    )
-            result = env.step(joint_action, grade_terminal=False)
-            observation = result.observation
+                    row = {"text": text, "prompt_text": prompt_text, "task_id": task_id, "seed": seed, "round_index": observation.round_index}
+                    is_empty = center_action_is_empty(joint_action.central_action)
+                    center_empty += int(is_empty)
+                    center_non_empty += int(not is_empty)
+                    weight = 1 if is_empty else max(1, center_non_empty_weight)
+                    rows.extend([row] * weight)
+                else:
+                    for warehouse_id in observation.warehouses:
+                        user = compact_observation(observation, role, warehouse_id)
+                        completion = action_completion_for_warehouse(joint_action, warehouse_id)
+                        prompt_text, text = _chat_text(tokenizer, system_prompt(role), user, completion)
+                        rows.append(
+                            {
+                                "text": text,
+                                "prompt_text": prompt_text,
+                                "task_id": task_id,
+                                "seed": seed,
+                                "round_index": observation.round_index,
+                                "warehouse_id": warehouse_id,
+                            }
+                        )
+                result = env.step(joint_action, grade_terminal=False)
+                observation = result.observation
+    if role == "center":
+        log(
+            "center_sft_mix",
+            task_ids=task_ids,
+            seeds=seeds,
+            empty_teacher_steps=center_empty,
+            non_empty_teacher_steps=center_non_empty,
+            non_empty_weight=center_non_empty_weight,
+            total_rows=len(rows),
+        )
     return rows
 
 
@@ -254,6 +279,7 @@ def main() -> None:
     args = parse_args()
     prepare_repo()
     seeds = [int(value.strip()) for value in args.seeds.split(",") if value.strip()]
+    task_ids = [value.strip() for value in args.task_id.split(",") if value.strip()]
     output_dir = args.output_dir or f"outputs/supplymind-{args.role}-qwen-sft"
     hub_model_id = args.hub_model_id or f"rishavutk/supplymind-{args.role}-qwen-0.5b-sft"
 
@@ -262,10 +288,10 @@ def main() -> None:
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
 
-    rows = build_rows(args.role, args.task_id, seeds, tokenizer)
+    rows = build_rows(args.role, task_ids, seeds, tokenizer, args.center_non_empty_weight)
     dataset = Dataset.from_list(rows)
-    log("dataset_ready", role=args.role, rows=len(rows), task_id=args.task_id, seeds=seeds, hub_model_id=hub_model_id)
-    baseline_probe(args.role, args.task_id, seeds)
+    log("dataset_ready", role=args.role, rows=len(rows), task_ids=task_ids, seeds=seeds, hub_model_id=hub_model_id)
+    baseline_probe(args.role, task_ids[0], seeds)
 
     tokenized = tokenize_dataset(dataset, tokenizer, args.max_length)
     log("tokenized_dataset_ready", rows=len(tokenized), max_length=args.max_length)
