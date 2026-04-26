@@ -21,6 +21,8 @@ SupplyMind is not a grid world, board game, or single-agent inventory toy. It is
 
 The official score is global welfare. The agent wins only by improving the network, not by moving money around inside it.
 
+Demo: [rishavutk/supplymind](https://huggingface.co/spaces/rishavutk/supplymind). The Space is playable in the browser with the built-in heuristic strategy, so reviewers can inspect a full episode interactively before looking at the training results.
+
 ## The Scenario
 
 Imagine a regional quick-commerce network during a shortage.

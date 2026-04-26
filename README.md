@@ -8,7 +8,9 @@ app_port: 7860
 
 SupplyMind is an OpenEnv environment for training LLM agents to coordinate a regional supply network. A central coordinator allocates depot stock, buys replenishment, and brokers transfers; local warehouses accept customer orders, manage inventory, and expose offers or requests. The task is multi-agent because local and central incentives are related but not identical, and the center acts under partial observability.
 
-HF Space: [rishavutk/supplymind](https://huggingface.co/spaces/rishavutk/supplymind)
+Demo / HF Space: [rishavutk/supplymind](https://huggingface.co/spaces/rishavutk/supplymind)
+
+The demo is playable in the browser with the built-in heuristic strategy, so reviewers can step through a full episode without running training first.
 
 ## Why It Matters
 
@@ -125,7 +127,7 @@ The target planner is a strong reference policy, not a claimed mathematical opti
 
 ## Training Evidence
 
-Our final story is:
+Our final training evidence is:
 
 ```text
 Base Qwen -> SFT warm start -> GRPO improvement
@@ -202,6 +204,8 @@ Runnable training notebook:
 ```text
 SupplyMind_Training_Run.ipynb
 ```
+
+The notebook is intended to reproduce the training method end-to-end: environment smoke test, SFT warm-start, GRPO from the SFT adapter, and held-out evaluation. Its default step counts are intentionally short so judges can rerun it quickly. The promoted adapters in the table above were produced by longer HF runs with the same role-specific training scripts and fixed seed protocol, so exact scores may differ in a short notebook rerun.
 
 ## Project Structure
 
