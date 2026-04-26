@@ -97,6 +97,27 @@ def create_v2_router() -> APIRouter:
 
         return (Path(__file__).resolve().parents[2] / "static" / "v2.html").read_text(encoding="utf-8")
 
+    @router.get("/dashboard", response_class=HTMLResponse)
+    def dashboard() -> str:
+        from pathlib import Path
+
+        return (Path(__file__).resolve().parents[2] / "static" / "dashboard.html").read_text(encoding="utf-8")
+
+    @router.get("/training-results")
+    def training_results() -> dict:
+        import json
+        from pathlib import Path
+
+        path = Path(__file__).resolve().parents[2] / "results" / "training_dashboard.json"
+        if not path.exists():
+            return {
+                "status": "pending",
+                "message": "No training dashboard results have been saved yet.",
+                "runs": [],
+                "comparisons": [],
+            }
+        return json.loads(path.read_text(encoding="utf-8"))
+
     return router
 
 

@@ -1,0 +1,78 @@
+{
+  "status": "eval_completed",
+  "updated_at": "2026-04-26 10:53 IST",
+  "hardware": "a10g-small",
+  "summary": "30-step smoke training completed and pushed adapters. Eval did not show improvement yet; this validates the pipeline but not learning progress.",
+  "runs": [
+    {
+      "role": "center",
+      "job_id": "69ed9a69d2c8bd8662bcf2fc",
+      "hardware": "a10g-small",
+      "status": "completed",
+      "notes": "30-step GRPO smoke run completed and pushed adapter in about 429s"
+    },
+    {
+      "role": "warehouse",
+      "job_id": "69ed9a67d70108f37acdf902",
+      "hardware": "a10g-small",
+      "status": "completed",
+      "notes": "30-step GRPO smoke run completed and pushed adapter in about 407s"
+    },
+    {
+      "role": "center_eval",
+      "job_id": "69ed9da4d2c8bd8662bcf36a",
+      "hardware": "a10g-small",
+      "status": "completed",
+      "notes": "base vs adapter eval completed; no measurable adapter lift"
+    },
+    {
+      "role": "warehouse_eval",
+      "job_id": "69ed9db4d2c8bd8662bcf36c",
+      "hardware": "a10g-small",
+      "status": "completed",
+      "notes": "base vs adapter eval completed; no measurable adapter lift"
+    }
+  ],
+  "comparisons": [
+    {
+      "role": "center",
+      "label": "base",
+      "mean_global_score": 0.5746333333,
+      "mean_center_role_score": 0.6451333333,
+      "mean_warehouse_role_score": 0.7186,
+      "mean_raw_reward": 233.8713333333,
+      "invalid_payloads": 0,
+      "invalid_actions": 0
+    },
+    {
+      "role": "center",
+      "label": "adapter",
+      "mean_global_score": 0.5746333333,
+      "mean_center_role_score": 0.6451333333,
+      "mean_warehouse_role_score": 0.7186,
+      "mean_raw_reward": 233.8713333333,
+      "invalid_payloads": 0,
+      "invalid_actions": 0
+    },
+    {
+      "role": "warehouse",
+      "label": "base",
+      "mean_global_score": 0.0001,
+      "mean_center_role_score": 0.0001,
+      "mean_warehouse_role_score": 0.0001,
+      "mean_raw_reward": -893.7133333333,
+      "invalid_payloads": 1,
+      "invalid_actions": 0
+    },
+    {
+      "role": "warehouse",
+      "label": "adapter",
+      "mean_global_score": 0.0001,
+      "mean_center_role_score": 0.0001,
+      "mean_warehouse_role_score": 0.0001,
+      "mean_raw_reward": -893.7133333333,
+      "invalid_payloads": 1,
+      "invalid_actions": 0
+    }
+  ]
+}
