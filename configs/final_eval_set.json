@@ -1,0 +1,35 @@
+{
+  "name": "supplymind_final_eval_set_v1",
+  "description": "Small cross-tier held-out benchmark for final SupplyMind model comparisons.",
+  "cases": [
+    {
+      "tier": "easy",
+      "task_id": "v2_train_easy",
+      "seed": 131
+    },
+    {
+      "tier": "medium",
+      "task_id": "v2_train_medium",
+      "seed": 211
+    },
+    {
+      "tier": "hard",
+      "task_id": "v2_train_hard",
+      "seed": 307
+    }
+  ],
+  "compare_setups": [
+    "base_center_base_warehouse",
+    "sft_center_sft_warehouse",
+    "grpo_center_best_warehouse",
+    "best_center_best_warehouse"
+  ],
+  "metrics": [
+    "global_score",
+    "center_role_score",
+    "warehouse_role_score",
+    "raw_reward",
+    "invalid_payloads",
+    "invalid_actions"
+  ]
+}
