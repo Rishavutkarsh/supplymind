@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from copy import deepcopy
 from dataclasses import dataclass
+from statistics import mean
 
 from .config import price_band
 from .environment import V2SupplyMindEnv
@@ -22,11 +23,27 @@ MEDIUM_MAX_CANDIDATES = 12
 MEDIUM_FOLLOW_UP_CANDIDATES = 5
 
 
+@dataclass(frozen=True)
+class RolloutStats:
+    global_reward: float
+    center_reward: float
+    average_warehouse_reward: float
+
+
 def rollout_reference(task_id: str, seed: int) -> float:
-    return max(
+    return rollout_reference_stats(task_id, seed).global_reward
+
+
+def rollout_reference_stats(task_id: str, seed: int) -> RolloutStats:
+    candidates = (
         _rollout_planner(task_id, seed),
         _rollout_policy(task_id, seed, naive_joint_policy),
         _rollout_policy(task_id, seed, heuristic_joint_policy),
+    )
+    return RolloutStats(
+        global_reward=max(item.global_reward for item in candidates),
+        center_reward=max(item.center_reward for item in candidates),
+        average_warehouse_reward=max(item.average_warehouse_reward for item in candidates),
     )
 
 
@@ -38,22 +55,31 @@ def privileged_reference_policy(observation) -> V2JointAction:
     return _best_action(env, observation)
 
 
-def _rollout_policy(task_id: str, seed: int, policy) -> float:
+def _rollout_policy(task_id: str, seed: int, policy) -> RolloutStats:
     env = V2SupplyMindEnv(default_task_id=task_id)
     observation = env.reset_internal(task_id, seed)
     while not env.done:
         result = env.step(policy(observation), grade_terminal=False)
         observation = result.observation
-    return env.cumulative_reward
+    return _stats_from_env(env)
 
 
-def _rollout_planner(task_id: str, seed: int) -> float:
+def _rollout_planner(task_id: str, seed: int) -> RolloutStats:
     env = V2SupplyMindEnv(default_task_id=task_id)
     observation = env.reset_internal(task_id, seed)
     while not env.done:
         result = env.step(_best_action(env, observation), grade_terminal=False)
         observation = result.observation
-    return env.cumulative_reward
+    return _stats_from_env(env)
+
+
+def _stats_from_env(env: V2SupplyMindEnv) -> RolloutStats:
+    warehouse_rewards = [value for key, value in env.agent_rewards.items() if key != "center"]
+    return RolloutStats(
+        global_reward=env.cumulative_reward,
+        center_reward=env.agent_rewards.get("center", 0.0),
+        average_warehouse_reward=mean(warehouse_rewards) if warehouse_rewards else 0.0,
+    )
 
 
 def _best_action(env: V2SupplyMindEnv, observation) -> V2JointAction:

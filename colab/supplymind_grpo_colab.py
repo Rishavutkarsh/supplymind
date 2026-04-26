@@ -201,6 +201,8 @@ for policy_name in ("no_op", "heuristic"):
         "baseline_probe",
         policy=policy_name,
         mean_score=round(mean(float(row["graded_score"]) for row in summaries), 4),
+        mean_center_role_score=round(mean(float(row["center_role_score"]) for row in summaries), 4),
+        mean_warehouse_role_score=round(mean(float(row["warehouse_role_score"]) for row in summaries), 4),
         mean_reward=round(mean(float(row["raw_reward"]) for row in summaries), 3),
         mean_center_reward=round(mean(float(row["center_reward"]) for row in summaries), 3),
         mean_average_warehouse_reward=round(mean(float(row["average_warehouse_reward"]) for row in summaries), 3),

@@ -223,3 +223,9 @@ class V2TaskResult(BaseModel):
     score: float
     center_reward: float
     average_warehouse_reward: float
+    baseline_center_reward: float = 0.0
+    target_center_reward: float = 0.0
+    center_role_score: float = 0.0
+    baseline_warehouse_reward: float = 0.0
+    target_warehouse_reward: float = 0.0
+    warehouse_role_score: float = 0.0

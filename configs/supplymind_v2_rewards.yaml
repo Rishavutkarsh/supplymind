@@ -21,7 +21,7 @@ price_bands:
     customer_value: 24.0
 
 order_rewards:
-  reject_penalty_multiplier: 0.15
+  reject_penalty_multiplier: 0.20
   accepted_missed_penalty_multiplier: 0.70
   silent_expiry_penalty_multiplier: 1.00
 

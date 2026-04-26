@@ -10,7 +10,7 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from supplymind_env_v2.environment import V2SupplyMindEnv
 from supplymind_env_v2.generator import BENCHMARK_PROFILE_IDS, TRAINING_PROFILE_IDS
-from supplymind_env_v2.grading import cached_reference_reward, grade_episode
+from supplymind_env_v2.grading import cached_reference_stats, grade_episode
 from supplymind_env_v2.policies import heuristic_joint_policy, naive_joint_policy, no_op_policy
 
 
@@ -35,6 +35,8 @@ def run_policy(task_id: str, seed: int, policy) -> dict:
         "seed": seed,
         "raw_reward": summary["raw_reward"],
         "score": summary["graded_score"],
+        "center_role_score": summary["center_role_score"],
+        "warehouse_role_score": summary["warehouse_role_score"],
         "center_reward": summary["center_reward"],
         "average_warehouse_reward": summary["average_warehouse_reward"],
         "baseline_reward": summary["baseline_reward"],
@@ -53,13 +55,26 @@ def main() -> None:
     ref_rows = []
     for task_id in PROFILE_IDS:
         for seed in SEEDS:
-            raw = cached_reference_reward(task_id, seed)
-            task_result = grade_episode(task_id, seed, raw, 0.0, 0.0)
-            ref_rows.append({"task_id": task_id, "seed": seed, "raw_reward": raw, "score": task_result.score})
+            stats = cached_reference_stats(task_id, seed)
+            task_result = grade_episode(task_id, seed, stats.global_reward, stats.center_reward, stats.average_warehouse_reward)
+            ref_rows.append(
+                {
+                    "task_id": task_id,
+                    "seed": seed,
+                    "raw_reward": stats.global_reward,
+                    "score": task_result.score,
+                    "center_role_score": task_result.center_role_score,
+                    "warehouse_role_score": task_result.warehouse_role_score,
+                    "center_reward": stats.center_reward,
+                    "average_warehouse_reward": stats.average_warehouse_reward,
+                }
+            )
     results["privileged_reference"] = ref_rows
     summary = {
         name: {
             "mean_score": round(mean(float(row["score"]) for row in rows), 4),
+            "mean_center_role_score": round(mean(float(row.get("center_role_score", 0.0)) for row in rows), 4),
+            "mean_warehouse_role_score": round(mean(float(row.get("warehouse_role_score", 0.0)) for row in rows), 4),
             "mean_reward": round(mean(float(row["raw_reward"]) for row in rows), 3),
             "episodes": len(rows),
         }

@@ -279,6 +279,12 @@ class V2SupplyMindEnv:
                 "graded_score": round(task_result.score, 4),
                 "center_reward": round(self.agent_rewards["center"], 3),
                 "average_warehouse_reward": round(avg_warehouse_reward, 3),
+                "center_role_score": round(task_result.center_role_score, 4),
+                "warehouse_role_score": round(task_result.warehouse_role_score, 4),
+                "baseline_center_reward": round(task_result.baseline_center_reward, 3),
+                "target_center_reward": round(task_result.target_center_reward, 3),
+                "baseline_warehouse_reward": round(task_result.baseline_warehouse_reward, 3),
+                "target_warehouse_reward": round(task_result.target_warehouse_reward, 3),
                 "audit_metrics": dict(self.audit_metrics),
             }
             info["episode_summary"] = dict(self.last_episode_summary)

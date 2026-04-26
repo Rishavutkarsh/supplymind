@@ -254,6 +254,8 @@ def baseline_role_probe(role: str, task_id: str, seeds: list[int]) -> None:
             task_id=task_id,
             seeds=seeds,
             mean_score=round(mean(float(row.get("graded_score", 0.0)) for row in summaries), 4),
+            mean_center_role_score=round(mean(float(row.get("center_role_score", 0.0)) for row in summaries), 4),
+            mean_warehouse_role_score=round(mean(float(row.get("warehouse_role_score", 0.0)) for row in summaries), 4),
             mean_raw_reward=round(mean(float(row.get("raw_reward", 0.0)) for row in summaries), 3),
             mean_center_reward=round(mean(float(row.get("center_reward", 0.0)) for row in summaries), 3),
             mean_average_warehouse_reward=round(mean(float(row.get("average_warehouse_reward", 0.0)) for row in summaries), 3),
