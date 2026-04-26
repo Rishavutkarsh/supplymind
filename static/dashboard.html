@@ -75,10 +75,7 @@
       <section class="wide">
         <div class="chart-head">
           <h2>Loss Over Step</h2>
-          <div class="legend">
-            <span><span class="swatch" style="background:#2563eb"></span>center</span>
-            <span><span class="swatch" style="background:#0f766e"></span>warehouse</span>
-          </div>
+          <div class="legend" id="lossLegend"></div>
         </div>
         <canvas id="lossPlot" width="1200" height="360"></canvas>
       </section>
@@ -86,10 +83,7 @@
       <section>
         <div class="chart-head">
           <h2>Reward Over Step</h2>
-          <div class="legend">
-            <span><span class="swatch" style="background:#2563eb"></span>center</span>
-            <span><span class="swatch" style="background:#0f766e"></span>warehouse</span>
-          </div>
+          <div class="legend" id="rewardLegend"></div>
         </div>
         <canvas id="rewardPlot" width="760" height="320"></canvas>
       </section>
@@ -97,10 +91,7 @@
       <section>
         <div class="chart-head">
           <h2>Invalid Payload / Action Batches</h2>
-          <div class="legend">
-            <span><span class="swatch" style="background:#c2410c"></span>payloads</span>
-            <span><span class="swatch" style="background:#b7791f"></span>actions</span>
-          </div>
+          <div class="legend" id="invalidLegend"></div>
         </div>
         <canvas id="invalidPlot" width="760" height="320"></canvas>
       </section>
@@ -108,10 +99,7 @@
       <section>
         <div class="chart-head">
           <h2>Completion Length</h2>
-          <div class="legend">
-            <span><span class="swatch" style="background:#2563eb"></span>center</span>
-            <span><span class="swatch" style="background:#0f766e"></span>warehouse</span>
-          </div>
+          <div class="legend" id="lengthLegend"></div>
         </div>
         <canvas id="lengthPlot" width="760" height="320"></canvas>
       </section>
@@ -119,10 +107,7 @@
       <section>
         <div class="chart-head">
           <h2>Clipped Ratio</h2>
-          <div class="legend">
-            <span><span class="swatch" style="background:#2563eb"></span>center</span>
-            <span><span class="swatch" style="background:#0f766e"></span>warehouse</span>
-          </div>
+          <div class="legend" id="clipLegend"></div>
         </div>
         <canvas id="clipPlot" width="760" height="320"></canvas>
       </section>
@@ -155,9 +140,17 @@
 
   <script>
     const $ = id => document.getElementById(id);
-    const roles = [
-      { key:"center", label:"center", color:"#2563eb" },
-      { key:"warehouse", label:"warehouse", color:"#0f766e" },
+    const trainingDefs = [
+      { key:"center_sft", role:"center", phase:"SFT", label:"center SFT", color:"#2563eb" },
+      { key:"center_grpo", role:"center", phase:"GRPO", label:"center GRPO", color:"#7c3aed" },
+      { key:"warehouse_sft", role:"warehouse", phase:"SFT", label:"warehouse SFT", color:"#0f766e" },
+      { key:"warehouse_grpo", role:"warehouse", phase:"GRPO", label:"warehouse GRPO", color:"#047857" },
+      { key:"center", role:"center", phase:null, label:"center", color:"#1d4ed8" },
+      { key:"warehouse", role:"warehouse", phase:null, label:"warehouse", color:"#0f766e" },
+    ];
+    const compareRoles = [
+      { key:"center", label:"center" },
+      { key:"warehouse", label:"warehouse" },
     ];
     const fmt = (value, digits = 3) => {
       const n = Number(value);
@@ -189,27 +182,37 @@
 
     function render(data) {
       const series = data.training_series || {};
+      const defs = activeTrainingDefs(series);
       renderSummary(data, series);
-      drawLineChart("lossPlot", lineSeries(series, ["loss"]), "loss");
-      drawLineChart("rewardPlot", lineSeries(series, ["reward", "rewards/reward_completions/mean"]), "reward");
-      drawInvalidChart("invalidPlot", invalidSeries(series));
-      drawLineChart("lengthPlot", lineSeries(series, ["completions/mean_length", "completion_length", "mean_completion_length"]), "tokens");
-      drawLineChart("clipPlot", lineSeries(series, ["completions/clipped_ratio", "clipped_ratio"]), "ratio", { minY:0, maxY:1 });
+      renderLegend("lossLegend", defs);
+      renderLegend("rewardLegend", defs);
+      renderLegend("invalidLegend", [
+        ...defs.map(def => ({ label:def.label, color:def.color })),
+        { label:"payload/action", color:"#c2410c" },
+      ]);
+      renderLegend("lengthLegend", defs);
+      renderLegend("clipLegend", defs);
+      drawLineChart("lossPlot", lineSeries(series, defs, ["loss"]), "loss");
+      drawLineChart("rewardPlot", lineSeries(series, defs, ["reward", "rewards/reward_completions/mean"]), "reward");
+      drawInvalidChart("invalidPlot", invalidSeries(series, defs));
+      drawLineChart("lengthPlot", lineSeries(series, defs, ["completions/mean_length", "completion_length", "mean_completion_length"]), "tokens");
+      drawLineChart("clipPlot", lineSeries(series, defs, ["completions/clipped_ratio", "clipped_ratio"]), "ratio", { minY:0, maxY:1 });
       renderHeldout(data.comparisons || []);
     }
 
     function renderSummary(data, series) {
       const summary = data.training_summary || {};
-      const allSteps = roles.flatMap(role => (series[role.key]?.steps || []).map(step => ({ role:role.key, step })));
-      const lastRows = roles.map(role => {
-        const steps = series[role.key]?.steps || [];
-        return { role:role.key, row:steps[steps.length - 1], summary:summary[role.key] || {} };
+      const defs = activeTrainingDefs(series);
+      const allSteps = defs.flatMap(def => (series[def.key]?.steps || []).map(step => ({ key:def.key, step })));
+      const lastRows = defs.map(def => {
+        const steps = series[def.key]?.steps || [];
+        return { key:def.key, row:steps[steps.length - 1], summary:summary[def.key] || {} };
       });
       const bestReward = Math.max(...allSteps.map(item => val(item.step, ["reward", "rewards/reward_completions/mean"]) ?? -Infinity));
       const meanClip = avg(lastRows.map(item => item.summary.mean_clipped_ratio));
       const meanLength = avg(lastRows.map(item => item.summary.mean_completion_length));
-      const totalInvalidPayloads = roles.reduce((sum, role) => sum + (series[role.key]?.reward_batches || []).reduce((s, b) => s + Number(b.invalid_payloads || 0), 0), 0);
-      const totalInvalidActions = roles.reduce((sum, role) => sum + (series[role.key]?.reward_batches || []).reduce((s, b) => s + Number(b.invalid_actions || 0), 0), 0);
+      const totalInvalidPayloads = defs.reduce((sum, def) => sum + (series[def.key]?.reward_batches || []).reduce((s, b) => s + Number(b.invalid_payloads || 0), 0), 0);
+      const totalInvalidActions = defs.reduce((sum, def) => sum + (series[def.key]?.reward_batches || []).reduce((s, b) => s + Number(b.invalid_actions || 0), 0), 0);
       $("summary").innerHTML = [
         metric("Status", data.status || "pending", data.summary || ""),
         metric("Steps", String(Math.max(0, ...lastRows.map(item => Number(item.summary.steps || item.row?.step || 0)))), data.hardware || ""),
@@ -224,27 +227,39 @@
       return `<div class="metric"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong><small>${escapeHtml(note || "")}</small></div>`;
     }
 
-    function lineSeries(trainingSeries, keys) {
-      return roles.map(role => ({
-        label: role.label,
-        color: role.color,
-        points: (trainingSeries[role.key]?.steps || [])
+    function activeTrainingDefs(trainingSeries) {
+      const defs = trainingDefs.filter(def => trainingSeries[def.key]);
+      return defs.length ? defs : trainingDefs.filter(def => !def.phase);
+    }
+
+    function renderLegend(id, items) {
+      $(id).innerHTML = items.length ? items.map(item =>
+        `<span><span class="swatch" style="background:${escapeHtml(item.color)}"></span>${escapeHtml(item.label)}</span>`
+      ).join("") : "";
+    }
+
+    function lineSeries(trainingSeries, defs, keys) {
+      return defs.map(def => ({
+        label: def.label,
+        color: def.color,
+        points: (trainingSeries[def.key]?.steps || [])
           .map(row => ({ x:val(row, ["step", "global_step"]), y:val(row, keys) }))
           .filter(point => point.x !== null && point.y !== null),
       }));
     }
 
-    function invalidSeries(trainingSeries) {
+    function invalidSeries(trainingSeries, defs) {
       const out = [];
-      for (const role of roles) {
+      for (const def of defs) {
         for (const kind of [
-          { key:"invalid_payloads", label:"payloads", color:"#c2410c" },
-          { key:"invalid_actions", label:"actions", color:"#b7791f" },
+          { key:"invalid_payloads", label:"payloads", alpha:0.86 },
+          { key:"invalid_actions", label:"actions", alpha:0.45 },
         ]) {
           out.push({
-            label: `${role.label} ${kind.label}`,
-            color: kind.color,
-            points: (trainingSeries[role.key]?.reward_batches || [])
+            label: `${def.label} ${kind.label}`,
+            color: def.color,
+            alpha: kind.alpha,
+            points: (trainingSeries[def.key]?.reward_batches || [])
               .map(row => ({ x:val(row, ["call", "step"]), y:val(row, [kind.key]) }))
               .filter(point => point.x !== null && point.y !== null),
           });
@@ -281,8 +296,8 @@
       const maxY = Math.max(1, ...points.map(p => p.y));
       drawAxes(ctx, bounds, minX, maxX, 0, maxY, "count");
       series.forEach((item, index) => {
-        const offset = (index - 1.5) * 5;
-        drawBars(ctx, bounds, item.points, minX, maxX, 0, maxY, item.color, offset);
+        const offset = (index - (series.length - 1) / 2) * 5;
+        drawBars(ctx, bounds, item.points, minX, maxX, 0, maxY, item.color, offset, item.alpha);
       });
     }
 
@@ -345,13 +360,13 @@
       });
     }
 
-    function drawBars(ctx, b, points, minX, maxX, minY, maxY, color, offset) {
+    function drawBars(ctx, b, points, minX, maxX, minY, maxY, color, offset, alpha = 0.82) {
       ctx.fillStyle = color;
       const width = Math.max(3, Math.min(10, (b.right - b.left) / Math.max(12, points.length * 4)));
       for (const point of points) {
         const x = scale(point.x, minX, maxX, b.left, b.right) + offset;
         const y = scale(point.y, minY, maxY, b.bottom, b.top);
-        ctx.globalAlpha = 0.82;
+        ctx.globalAlpha = alpha;
         ctx.fillRect(x - width / 2, y, width, b.bottom - y);
         ctx.globalAlpha = 1;
       }
@@ -359,7 +374,7 @@
 
     function renderHeldout(comparisons) {
       const rows = [];
-      for (const role of roles) {
+      for (const role of compareRoles) {
         const base = comparisons.find(row => row.role === role.key && row.label === "base");
         const variants = comparisons.filter(row => row.role === role.key && row.label !== "base");
         for (const variant of variants) rows.push({ role:role.key, base, variant });

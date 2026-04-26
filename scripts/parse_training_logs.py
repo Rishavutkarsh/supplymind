@@ -15,6 +15,7 @@ from typing import Any
 DEFAULT_OUTPUT = Path("results/training_dashboard.json")
 ANSI_RE = re.compile(r"\x1b\[[0-?]*[ -/]*[@-~]")
 ROLE_RE = re.compile(r"\b(center|warehouse)\b", re.IGNORECASE)
+PHASE_RE = re.compile(r"\b(sft|grpo)\b", re.IGNORECASE)
 
 
 def read_text(path: Path) -> str:
@@ -110,7 +111,21 @@ def infer_role(path: Path, records: list[dict[str, Any]]) -> str:
     raise ValueError(f"Could not infer role for {path}; use --center-log or --warehouse-log")
 
 
-def parse_log(path: Path, role_hint: str | None = None) -> tuple[str, dict[str, Any]]:
+def infer_phase(path: Path, records: list[dict[str, Any]]) -> str | None:
+    for record in records:
+        phase = record.get("phase") or record.get("training_phase") or record.get("stage")
+        if isinstance(phase, str) and phase.lower() in {"sft", "grpo"}:
+            return phase.lower()
+
+    match = PHASE_RE.search(path.stem)
+    return match.group(1).lower() if match else None
+
+
+def series_key(role: str, phase: str | None) -> str:
+    return f"{role}_{phase}" if phase else role
+
+
+def parse_log(path: Path, role_hint: str | None = None, phase_hint: str | None = None) -> tuple[str, dict[str, Any]]:
     steps: list[dict[str, Any]] = []
     reward_batches: list[dict[str, Any]] = []
     role_records: list[dict[str, Any]] = []
@@ -138,8 +153,11 @@ def parse_log(path: Path, role_hint: str | None = None) -> tuple[str, dict[str, 
             steps.append(step)
 
     role = role_hint or infer_role(path, role_records)
-    return role, {
+    phase = phase_hint or infer_phase(path, role_records)
+    return series_key(role, phase), {
         "source_log": str(path),
+        "role": role,
+        "phase": phase,
         "steps": steps,
         "reward_batches": reward_batches,
     }
@@ -207,14 +225,18 @@ def summarize(series: dict[str, Any]) -> dict[str, Any]:
     return summary
 
 
-def discover_logs() -> list[tuple[str | None, Path]]:
-    return [(None, path) for path in sorted(Path("results").glob("*.log"))]
+def discover_logs() -> list[tuple[str | None, str | None, Path]]:
+    return [(None, None, path) for path in sorted(Path("results").glob("*.log"))]
 
 
 def build_arg_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--center-log", type=Path, help="HF training log for the center role")
     parser.add_argument("--warehouse-log", type=Path, help="HF training log for the warehouse role")
+    parser.add_argument("--center-sft-log", type=Path, help="SFT training log for the center role")
+    parser.add_argument("--warehouse-sft-log", type=Path, help="SFT training log for the warehouse role")
+    parser.add_argument("--center-grpo-log", type=Path, help="GRPO training log for the center role")
+    parser.add_argument("--warehouse-grpo-log", type=Path, help="GRPO training log for the warehouse role")
     parser.add_argument("--eval-log", action="append", type=Path, default=[], help="HF eval log containing eval_result JSON rows")
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT, help="Dashboard JSON path")
     parser.add_argument("--status", help="Optional top-level dashboard status")
@@ -225,11 +247,19 @@ def build_arg_parser() -> argparse.ArgumentParser:
 def main() -> None:
     args = build_arg_parser().parse_args()
 
-    requested_logs: list[tuple[str | None, Path]] = []
+    requested_logs: list[tuple[str | None, str | None, Path]] = []
     if args.center_log:
-        requested_logs.append(("center", args.center_log))
+        requested_logs.append(("center", None, args.center_log))
     if args.warehouse_log:
-        requested_logs.append(("warehouse", args.warehouse_log))
+        requested_logs.append(("warehouse", None, args.warehouse_log))
+    if args.center_sft_log:
+        requested_logs.append(("center", "sft", args.center_sft_log))
+    if args.warehouse_sft_log:
+        requested_logs.append(("warehouse", "sft", args.warehouse_sft_log))
+    if args.center_grpo_log:
+        requested_logs.append(("center", "grpo", args.center_grpo_log))
+    if args.warehouse_grpo_log:
+        requested_logs.append(("warehouse", "grpo", args.warehouse_grpo_log))
     if not requested_logs:
         requested_logs = discover_logs()
 
@@ -237,23 +267,28 @@ def main() -> None:
     dashboard.setdefault("training_series", {})
     dashboard.setdefault("training_summary", {})
 
-    parsed_roles: list[str] = []
-    for role_hint, log_path in requested_logs:
+    parsed_keys: list[str] = []
+    valid_keys = {"center", "warehouse", "center_sft", "center_grpo", "warehouse_sft", "warehouse_grpo"}
+    for role_hint, phase_hint, log_path in requested_logs:
         if not log_path.exists():
             raise FileNotFoundError(log_path)
         try:
-            role, series = parse_log(log_path, role_hint)
+            key, series = parse_log(log_path, role_hint, phase_hint)
         except ValueError:
             if role_hint is None:
                 continue
             raise
-        if role not in {"center", "warehouse"}:
+        if key not in valid_keys:
             continue
         if not series.get("steps") and not series.get("reward_batches"):
             continue
-        dashboard["training_series"][role] = series
-        dashboard["training_summary"][role] = summarize(series)
-        parsed_roles.append(role)
+        dashboard["training_series"][key] = series
+        dashboard["training_summary"][key] = summarize(series)
+        role = series.get("role")
+        if key != role and role in {"center", "warehouse"}:
+            dashboard["training_series"].setdefault(role, series)
+            dashboard["training_summary"].setdefault(role, summarize(series))
+        parsed_keys.append(key)
 
     comparisons: list[dict[str, Any]] = []
     for eval_log in args.eval_log:
@@ -275,12 +310,12 @@ def main() -> None:
         dashboard["status"] = args.status
     if args.updated_at:
         dashboard["updated_at"] = args.updated_at
-    elif parsed_roles and "updated_at" not in dashboard:
+    elif parsed_keys and "updated_at" not in dashboard:
         dashboard["updated_at"] = datetime.now().astimezone().isoformat(timespec="seconds")
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(dashboard, indent=2) + "\n", encoding="utf-8")
-    print(f"Wrote {args.output} with roles: {', '.join(parsed_roles) or 'none'}")
+    print(f"Wrote {args.output} with series: {', '.join(parsed_keys) or 'none'}")
 
 
 if __name__ == "__main__":
