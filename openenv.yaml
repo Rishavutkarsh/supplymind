@@ -20,6 +20,16 @@ tasks:
     difficulty: medium
   - id: hard
     difficulty: hard
+metadata:
+  primary_theme: "Theme #1 - Multi-Agent Interactions"
+  space_url: "https://huggingface.co/spaces/rishavutk/supplymind"
+  api_routes:
+    - /reset
+    - /state
+    - /step
+    - /v2/rules
+    - /v2/center/reset
+    - /v2/warehouse/reset
 validation:
   required_methods:
     - reset

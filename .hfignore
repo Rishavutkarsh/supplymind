@@ -1,5 +1,6 @@
 .git/
 __pycache__/
+**/__pycache__/
 *.pyc
 *.pyo
 *.pyd
@@ -9,5 +10,12 @@ __pycache__/
 server.err.log
 server.out.log
 results/*.json
+results/**/*.log
+results/**/*.json
+results/**/*.png
+!results/submission/
+!results/submission/**
 results/*.tmp
 outputs/
+results.zip
+server.*.log
