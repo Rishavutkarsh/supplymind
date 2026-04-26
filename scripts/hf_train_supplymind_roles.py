@@ -28,7 +28,7 @@ from typing import Any
 
 from datasets import Dataset
 from huggingface_hub import snapshot_download
-from peft import LoraConfig
+from peft import LoraConfig, PeftModel
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from trl import GRPOConfig, GRPOTrainer
 
@@ -38,6 +38,8 @@ MODEL_ID = "Qwen/Qwen2.5-0.5B-Instruct"
 REWARD_SCALE = 10.0
 REWARD_CLIP = 20.0
 REWARD_LOG_EVERY = 10
+MALFORMED_REWARD = -2.0
+INVALID_ACTION_PENALTY = 0.5
 
 
 def log(message: str, **fields: Any) -> None:
@@ -54,6 +56,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--max-completion-length", type=int, default=256)
     parser.add_argument("--hub-model-id", default="")
     parser.add_argument("--output-dir", default="")
+    parser.add_argument("--init-adapter-id", default="")
     return parser.parse_args()
 
 
@@ -204,7 +207,7 @@ def make_reward_fn(role: str):
         for completion, current_task, current_seed, current_round in zip(completions, task_id, seed, round_index, strict=True):
             payload = extract_json(completion)
             if payload is None:
-                rewards.append(-8.0)
+                rewards.append(MALFORMED_REWARD)
                 invalid_payloads += 1
                 continue
             env, observation = replay_to_round(current_task, int(current_seed), int(current_round))
@@ -222,7 +225,7 @@ def make_reward_fn(role: str):
                 else:
                     action = V2JointAction.model_validate(payload)
             except Exception:
-                rewards.append(-8.0)
+                rewards.append(MALFORMED_REWARD)
                 invalid_payloads += 1
                 continue
             result = env.step(action, grade_terminal=False)
@@ -236,7 +239,7 @@ def make_reward_fn(role: str):
             else:
                 role_delta = float(result.reward.step_reward)
             scaled = max(-REWARD_CLIP, min(REWARD_CLIP, role_delta / REWARD_SCALE))
-            rewards.append(scaled + 1.0 - 2.0 * invalid_count)
+            rewards.append(scaled + 1.0 - INVALID_ACTION_PENALTY * invalid_count)
         if call_count == 1 or call_count % REWARD_LOG_EVERY == 0:
             log(
                 "reward_batch",
@@ -338,22 +341,29 @@ def main() -> None:
     log("loading_model", model_id=MODEL_ID)
     tokenizer = AutoTokenizer.from_pretrained(MODEL_ID)
     model = AutoModelForCausalLM.from_pretrained(MODEL_ID, torch_dtype="auto", device_map="auto")
-    log("model_loaded", model_id=MODEL_ID)
-
-    trainer = GRPOTrainer(
-        model=model,
-        processing_class=tokenizer,
-        reward_funcs=make_reward_fn(args.role),
-        train_dataset=dataset,
-        peft_config=LoraConfig(
-            r=16,
-            lora_alpha=32,
-            lora_dropout=0.05,
-            target_modules=["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"],
-            task_type="CAUSAL_LM",
-        ),
-        args=make_grpo_config(output_dir, args.max_steps, hub_model_id, args.role, args.max_completion_length),
+    peft_config = LoraConfig(
+        r=16,
+        lora_alpha=32,
+        lora_dropout=0.05,
+        target_modules=["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"],
+        task_type="CAUSAL_LM",
     )
+    if args.init_adapter_id:
+        log("loading_initial_adapter", adapter_id=args.init_adapter_id)
+        model = PeftModel.from_pretrained(model, args.init_adapter_id, is_trainable=True)
+        peft_config = None
+    log("model_loaded", model_id=MODEL_ID, init_adapter_id=args.init_adapter_id or None)
+
+    trainer_kwargs = {
+        "model": model,
+        "processing_class": tokenizer,
+        "reward_funcs": make_reward_fn(args.role),
+        "train_dataset": dataset,
+        "args": make_grpo_config(output_dir, args.max_steps, hub_model_id, args.role, args.max_completion_length),
+    }
+    if peft_config is not None:
+        trainer_kwargs["peft_config"] = peft_config
+    trainer = GRPOTrainer(**trainer_kwargs)
     log("training_start", role=args.role, max_steps=args.max_steps, max_completion_length=args.max_completion_length)
     trainer.train()
     log("training_done", elapsed_seconds=round(time.time() - started, 2))

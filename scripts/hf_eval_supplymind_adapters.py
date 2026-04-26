@@ -38,7 +38,9 @@ def log(message: str, **fields: Any) -> None:
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--role", choices=["center", "warehouse"], required=True)
-    parser.add_argument("--adapter-id", required=True)
+    parser.add_argument("--adapter-id", default="")
+    parser.add_argument("--sft-adapter-id", default="")
+    parser.add_argument("--grpo-adapter-id", default="")
     parser.add_argument("--task-id", default="v2_train_easy")
     parser.add_argument("--seeds", default="101,113,127")
     parser.add_argument("--max-new-tokens", type=int, default=256)
@@ -197,6 +199,8 @@ def evaluate(role: str, label: str, model: Any, tokenizer: Any, task_id: str, se
 def main() -> None:
     started = time.time()
     args = parse_args()
+    if not (args.adapter_id or args.sft_adapter_id or args.grpo_adapter_id):
+        raise SystemExit("Provide --adapter-id or --sft-adapter-id/--grpo-adapter-id.")
     prepare_repo()
     seeds = [int(value.strip()) for value in args.seeds.split(",") if value.strip()]
 
@@ -207,11 +211,23 @@ def main() -> None:
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
 
-    log("loading_adapter_model", adapter_id=args.adapter_id)
-    adapter_model, tokenizer = load_model(args.adapter_id)
-    trained = evaluate(args.role, "adapter", adapter_model, tokenizer, args.task_id, seeds, args.max_new_tokens)
+    evaluations: dict[str, Any] = {"base": base}
+    adapter_specs = []
+    if args.adapter_id:
+        adapter_specs.append(("adapter", args.adapter_id))
+    if args.sft_adapter_id:
+        adapter_specs.append(("sft", args.sft_adapter_id))
+    if args.grpo_adapter_id:
+        adapter_specs.append(("grpo", args.grpo_adapter_id))
+    for label, adapter_id in adapter_specs:
+        log("loading_adapter_model", label=label, adapter_id=adapter_id)
+        adapter_model, tokenizer = load_model(adapter_id)
+        evaluations[label] = evaluate(args.role, label, adapter_model, tokenizer, args.task_id, seeds, args.max_new_tokens)
+        del adapter_model
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
 
-    result = {"message": "eval_done", "elapsed_seconds": round(time.time() - started, 2), "base": base, "adapter": trained}
+    result = {"message": "eval_done", "elapsed_seconds": round(time.time() - started, 2), **evaluations}
     log(**result)
 
 

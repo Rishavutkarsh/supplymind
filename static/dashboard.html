@@ -3,46 +3,63 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>SupplyMind Training Dashboard</title>
+  <title>SupplyMind Experiment Analysis</title>
   <style>
     :root {
-      --bg:#eef5fb; --ink:#152033; --muted:#66768d; --panel:#ffffff; --line:#d6e0ea;
-      --nav:#0f2535; --blue:#2563eb; --cyan:#0891b2; --green:#047857; --red:#b42318; --amber:#b7791f;
+      --bg:#f4f7fb; --ink:#172033; --muted:#667085; --panel:#ffffff; --line:#d8e0ea;
+      --nav:#102236; --blue:#2563eb; --teal:#0f766e; --red:#c2410c; --amber:#b7791f;
+      --green:#047857; --grid:#e8edf3;
     }
     * { box-sizing:border-box; }
     body { margin:0; font-family:Inter, Segoe UI, Arial, sans-serif; background:var(--bg); color:var(--ink); }
-    header { background:var(--nav); color:white; padding:16px 20px; display:flex; justify-content:space-between; align-items:center; gap:14px; flex-wrap:wrap; }
-    h1 { margin:0; font-size:22px; font-weight:700; }
-    h2 { margin:0 0 10px; font-size:15px; }
-    main { padding:16px; display:grid; gap:14px; max-width:1360px; margin:0 auto; }
-    section, .card { background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:12px; }
-    .top { display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:10px; }
-    .metric strong { display:block; font-size:24px; margin-top:4px; }
-    .muted { color:var(--muted); }
-    .grid { display:grid; grid-template-columns:1.1fr .9fr; gap:14px; }
-    .plots { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
-    .status { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
-    .pill { border-radius:999px; border:1px solid #bfdbfe; background:#eff6ff; color:#1d4ed8; padding:3px 9px; font-size:12px; }
-    .pill.good { background:#ecfdf5; border-color:#a7f3d0; color:#047857; }
-    .pill.bad { background:#fef2f2; border-color:#fecaca; color:#b42318; }
-    .pill.warn { background:#fffbeb; border-color:#fde68a; color:#92400e; }
+    header { background:var(--nav); color:white; padding:18px 22px; display:flex; justify-content:space-between; align-items:center; gap:14px; flex-wrap:wrap; }
+    h1 { margin:0; font-size:22px; font-weight:750; letter-spacing:0; }
+    h2 { margin:0; font-size:15px; font-weight:700; }
+    main { max-width:1440px; margin:0 auto; padding:16px; display:grid; gap:14px; }
+    section { background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:14px; }
     button, a.button { height:34px; border-radius:6px; border:0; background:var(--blue); color:white; padding:8px 12px; cursor:pointer; text-decoration:none; font:inherit; display:inline-flex; align-items:center; }
-    a.link { color:#bfdbfe; text-decoration:none; }
-    table { width:100%; border-collapse:collapse; font-size:13px; }
-    th,td { padding:8px; border-bottom:1px solid var(--line); text-align:left; vertical-align:top; }
-    th { color:#42536a; font-weight:600; background:#f8fafc; }
-    canvas { width:100%; height:300px; display:block; }
-    .legend { display:flex; gap:12px; flex-wrap:wrap; margin-top:8px; font-size:12px; color:var(--muted); }
+    a.link { color:#dbeafe; text-decoration:none; }
+    .muted { color:var(--muted); }
+    .subtle { color:#cbd5e1; font-size:13px; margin-top:4px; }
+    .status { display:flex; gap:9px; align-items:center; flex-wrap:wrap; }
+    .pill { border-radius:999px; border:1px solid #bfdbfe; background:#eff6ff; color:#1d4ed8; padding:4px 10px; font-size:12px; white-space:nowrap; }
+    .summary { display:grid; grid-template-columns:repeat(5, minmax(0, 1fr)); gap:10px; }
+    .metric { border:1px solid var(--line); border-radius:8px; padding:11px 12px; background:#fbfdff; min-height:82px; }
+    .metric span { display:block; color:var(--muted); font-size:12px; }
+    .metric strong { display:block; margin-top:8px; font-size:24px; line-height:1; }
+    .metric small { display:block; margin-top:7px; color:var(--muted); font-size:12px; }
+    .chart-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+    .wide { grid-column:1 / -1; }
+    .chart-head { display:flex; justify-content:space-between; gap:12px; align-items:flex-start; margin-bottom:8px; }
+    .legend { display:flex; gap:12px; flex-wrap:wrap; font-size:12px; color:var(--muted); justify-content:flex-end; }
     .swatch { width:10px; height:10px; border-radius:2px; display:inline-block; margin-right:5px; }
-    pre { background:#0f172a; color:#e2e8f0; padding:10px; border-radius:8px; max-height:260px; overflow:auto; font-size:12px; }
-    @media (max-width:960px) { .top,.grid,.plots { grid-template-columns:1fr; } }
+    canvas { display:block; width:100%; height:320px; }
+    .wide canvas { height:360px; }
+    table { width:100%; border-collapse:collapse; font-size:13px; }
+    th, td { padding:9px 8px; border-bottom:1px solid var(--line); text-align:left; vertical-align:top; }
+    th { background:#f8fafc; color:#42536a; font-weight:700; }
+    td.number { font-variant-numeric:tabular-nums; }
+    .delta.good { color:var(--green); font-weight:700; }
+    .delta.bad { color:var(--red); font-weight:700; }
+    .empty { color:var(--muted); padding:24px; text-align:center; border:1px dashed var(--line); border-radius:8px; background:#fbfdff; }
+    @media (max-width:1100px) {
+      .summary { grid-template-columns:repeat(2, minmax(0, 1fr)); }
+      .chart-grid { grid-template-columns:1fr; }
+      .wide { grid-column:auto; }
+    }
+    @media (max-width:640px) {
+      header { align-items:flex-start; }
+      main { padding:10px; }
+      .summary { grid-template-columns:1fr; }
+      canvas, .wide canvas { height:280px; }
+    }
   </style>
 </head>
 <body>
   <header>
     <div>
-      <h1>SupplyMind Training Dashboard</h1>
-      <div class="muted" style="color:#cbd5e1">Role-specific GRPO smoke runs, adapter evals, and training signals</div>
+      <h1>SupplyMind Experiment Analysis</h1>
+      <div class="subtle">Training curves, reward quality, and held-out adapter comparisons</div>
     </div>
     <div class="status">
       <a class="link" href="/v2/ui">Episode UI</a>
@@ -52,151 +69,362 @@
   </header>
 
   <main>
-    <section class="top" id="summary"></section>
+    <section class="summary" id="summary"></section>
 
-    <div class="plots">
-      <section>
-        <h2>Before vs After Scores</h2>
-        <canvas id="scorePlot" width="760" height="320"></canvas>
-        <div class="legend">
-          <span><span class="swatch" style="background:#2563eb"></span>Base</span>
-          <span><span class="swatch" style="background:#0891b2"></span>Trained adapter</span>
+    <div class="chart-grid">
+      <section class="wide">
+        <div class="chart-head">
+          <h2>Loss Over Step</h2>
+          <div class="legend">
+            <span><span class="swatch" style="background:#2563eb"></span>center</span>
+            <span><span class="swatch" style="background:#0f766e"></span>warehouse</span>
+          </div>
         </div>
+        <canvas id="lossPlot" width="1200" height="360"></canvas>
       </section>
+
       <section>
-        <h2>Invalid Payloads / Actions</h2>
+        <div class="chart-head">
+          <h2>Reward Over Step</h2>
+          <div class="legend">
+            <span><span class="swatch" style="background:#2563eb"></span>center</span>
+            <span><span class="swatch" style="background:#0f766e"></span>warehouse</span>
+          </div>
+        </div>
+        <canvas id="rewardPlot" width="760" height="320"></canvas>
+      </section>
+
+      <section>
+        <div class="chart-head">
+          <h2>Invalid Payload / Action Batches</h2>
+          <div class="legend">
+            <span><span class="swatch" style="background:#c2410c"></span>payloads</span>
+            <span><span class="swatch" style="background:#b7791f"></span>actions</span>
+          </div>
+        </div>
         <canvas id="invalidPlot" width="760" height="320"></canvas>
-        <div class="legend">
-          <span><span class="swatch" style="background:#b42318"></span>Invalid payloads</span>
-          <span><span class="swatch" style="background:#b7791f"></span>Invalid actions</span>
-        </div>
       </section>
-    </div>
 
-    <div class="grid">
       <section>
-        <h2>Run Status</h2>
-        <table>
-          <thead><tr><th>Role</th><th>Job</th><th>Hardware</th><th>Status</th><th>Notes</th></tr></thead>
-          <tbody id="runs"></tbody>
-        </table>
+        <div class="chart-head">
+          <h2>Completion Length</h2>
+          <div class="legend">
+            <span><span class="swatch" style="background:#2563eb"></span>center</span>
+            <span><span class="swatch" style="background:#0f766e"></span>warehouse</span>
+          </div>
+        </div>
+        <canvas id="lengthPlot" width="760" height="320"></canvas>
       </section>
+
       <section>
-        <h2>Eval Details</h2>
-        <table>
-          <thead><tr><th>Role</th><th>Model</th><th>Global</th><th>Role Score</th><th>Raw</th></tr></thead>
-          <tbody id="comparisons"></tbody>
-        </table>
+        <div class="chart-head">
+          <h2>Clipped Ratio</h2>
+          <div class="legend">
+            <span><span class="swatch" style="background:#2563eb"></span>center</span>
+            <span><span class="swatch" style="background:#0f766e"></span>warehouse</span>
+          </div>
+        </div>
+        <canvas id="clipPlot" width="760" height="320"></canvas>
       </section>
     </div>
 
     <section>
-      <h2>Raw Dashboard JSON</h2>
-      <pre id="raw">{}</pre>
+      <div class="chart-head">
+        <h2>Held-out Comparison</h2>
+        <div class="muted" id="comparisonNote"></div>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Role</th>
+            <th>Variant</th>
+            <th>Base Global</th>
+            <th>Variant Global</th>
+            <th>Global Delta</th>
+            <th>Base Role</th>
+            <th>Variant Role</th>
+            <th>Role Delta</th>
+            <th>Invalids</th>
+            <th>Raw Reward Delta</th>
+          </tr>
+        </thead>
+        <tbody id="heldout"></tbody>
+      </table>
     </section>
   </main>
 
   <script>
     const $ = id => document.getElementById(id);
+    const roles = [
+      { key:"center", label:"center", color:"#2563eb" },
+      { key:"warehouse", label:"warehouse", color:"#0f766e" },
+    ];
+    const fmt = (value, digits = 3) => {
+      const n = Number(value);
+      if (!Number.isFinite(n)) return "pending";
+      if (Math.abs(n) >= 100) return n.toFixed(1);
+      if (Math.abs(n) >= 10) return n.toFixed(2);
+      return n.toFixed(digits);
+    };
     const roleScoreKey = role => role === "center" ? "mean_center_role_score" : "mean_warehouse_role_score";
-    const fmt = value => value === null || value === undefined || Number.isNaN(Number(value)) ? "pending" : Number(value).toFixed(4);
-    const statusClass = status => status === "completed" ? "good" : status === "error" || status === "canceled" ? "bad" : "warn";
+    const val = (row, keys) => {
+      for (const key of keys) {
+        if (row && row[key] !== undefined && row[key] !== null && Number.isFinite(Number(row[key]))) return Number(row[key]);
+      }
+      return null;
+    };
 
     async function load() {
-      const res = await fetch("/v2/training-results?ts=" + Date.now());
-      const data = await res.json();
-      $("loaded").textContent = data.updated_at || data.status || "loaded";
-      $("raw").textContent = JSON.stringify(data, null, 2);
-      renderSummary(data);
-      renderRuns(data.runs || []);
-      renderComparisons(data.comparisons || []);
-      drawScorePlot(data.comparisons || []);
-      drawInvalidPlot(data.comparisons || []);
+      try {
+        const res = await fetch("/v2/training-results?ts=" + Date.now());
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        const data = await res.json();
+        $("loaded").textContent = data.updated_at || data.status || "loaded";
+        render(data);
+      } catch (error) {
+        $("loaded").textContent = "failed";
+        $("summary").innerHTML = `<div class="empty" style="grid-column:1/-1">Could not load /v2/training-results: ${escapeHtml(error.message)}</div>`;
+      }
     }
 
-    function renderSummary(data) {
-      const comps = data.comparisons || [];
-      const completed = (data.runs || []).filter(r => r.status === "completed").length;
-      const center = improvement(comps, "center");
-      const warehouse = improvement(comps, "warehouse");
-      $("summary").innerHTML = `
-        <div class="card metric"><span class="muted">Completed jobs</span><strong>${completed}</strong></div>
-        <div class="card metric"><span class="muted">Center role lift</span><strong>${center}</strong></div>
-        <div class="card metric"><span class="muted">Warehouse role lift</span><strong>${warehouse}</strong></div>
-        <div class="card metric"><span class="muted">Hardware</span><strong>${data.hardware || "a10g-small"}</strong></div>`;
+    function render(data) {
+      const series = data.training_series || {};
+      renderSummary(data, series);
+      drawLineChart("lossPlot", lineSeries(series, ["loss"]), "loss");
+      drawLineChart("rewardPlot", lineSeries(series, ["reward", "rewards/reward_completions/mean"]), "reward");
+      drawInvalidChart("invalidPlot", invalidSeries(series));
+      drawLineChart("lengthPlot", lineSeries(series, ["completions/mean_length", "completion_length", "mean_completion_length"]), "tokens");
+      drawLineChart("clipPlot", lineSeries(series, ["completions/clipped_ratio", "clipped_ratio"]), "ratio", { minY:0, maxY:1 });
+      renderHeldout(data.comparisons || []);
     }
 
-    function improvement(comps, role) {
-      const base = comps.find(c => c.role === role && c.label === "base");
-      const adapter = comps.find(c => c.role === role && c.label === "adapter");
-      if (!base || !adapter) return "pending";
-      const key = roleScoreKey(role);
-      const delta = Number(adapter[key]) - Number(base[key]);
-      return (delta >= 0 ? "+" : "") + delta.toFixed(4);
-    }
-
-    function renderRuns(runs) {
-      $("runs").innerHTML = runs.map(r => `
-        <tr>
-          <td>${r.role || ""}</td>
-          <td><span class="muted">${r.job_id || ""}</span></td>
-          <td>${r.hardware || ""}</td>
-          <td><span class="pill ${statusClass(r.status)}">${r.status || "pending"}</span></td>
-          <td>${r.notes || ""}</td>
-        </tr>`).join("");
-    }
-
-    function renderComparisons(comps) {
-      $("comparisons").innerHTML = comps.map(c => `
-        <tr>
-          <td>${c.role}</td>
-          <td>${c.label}</td>
-          <td>${fmt(c.mean_global_score)}</td>
-          <td>${fmt(c[roleScoreKey(c.role)])}</td>
-          <td>${fmt(c.mean_raw_reward)}</td>
-        </tr>`).join("");
-    }
-
-    function drawScorePlot(comps) {
-      const rows = ["center", "warehouse"].flatMap(role => {
-        const base = comps.find(c => c.role === role && c.label === "base");
-        const adapter = comps.find(c => c.role === role && c.label === "adapter");
-        return [{ label:`${role} base`, value:base?.[roleScoreKey(role)], color:"#2563eb" }, { label:`${role} trained`, value:adapter?.[roleScoreKey(role)], color:"#0891b2" }];
+    function renderSummary(data, series) {
+      const summary = data.training_summary || {};
+      const allSteps = roles.flatMap(role => (series[role.key]?.steps || []).map(step => ({ role:role.key, step })));
+      const lastRows = roles.map(role => {
+        const steps = series[role.key]?.steps || [];
+        return { role:role.key, row:steps[steps.length - 1], summary:summary[role.key] || {} };
       });
-      drawBars("scorePlot", rows, 1.0);
+      const bestReward = Math.max(...allSteps.map(item => val(item.step, ["reward", "rewards/reward_completions/mean"]) ?? -Infinity));
+      const meanClip = avg(lastRows.map(item => item.summary.mean_clipped_ratio));
+      const meanLength = avg(lastRows.map(item => item.summary.mean_completion_length));
+      const totalInvalidPayloads = roles.reduce((sum, role) => sum + (series[role.key]?.reward_batches || []).reduce((s, b) => s + Number(b.invalid_payloads || 0), 0), 0);
+      const totalInvalidActions = roles.reduce((sum, role) => sum + (series[role.key]?.reward_batches || []).reduce((s, b) => s + Number(b.invalid_actions || 0), 0), 0);
+      $("summary").innerHTML = [
+        metric("Status", data.status || "pending", data.summary || ""),
+        metric("Steps", String(Math.max(0, ...lastRows.map(item => Number(item.summary.steps || item.row?.step || 0)))), data.hardware || ""),
+        metric("Best reward", bestReward === -Infinity ? "pending" : fmt(bestReward), "highest training step reward"),
+        metric("Mean length", fmt(meanLength, 1), "completion tokens"),
+        metric("Invalid batches", `${totalInvalidPayloads} / ${totalInvalidActions}`, "payloads / actions"),
+        metric("Mean clipped", fmt(meanClip, 3), "across role summaries"),
+      ].join("");
     }
 
-    function drawInvalidPlot(comps) {
-      const rows = comps.flatMap(c => [
-        { label:`${c.role} ${c.label} payload`, value:c.invalid_payloads, color:"#b42318" },
-        { label:`${c.role} ${c.label} action`, value:c.invalid_actions, color:"#b7791f" },
-      ]);
-      drawBars("invalidPlot", rows, Math.max(1, ...rows.map(r => Number(r.value || 0))));
+    function metric(label, value, note) {
+      return `<div class="metric"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong><small>${escapeHtml(note || "")}</small></div>`;
     }
 
-    function drawBars(id, rows, maxValue) {
-      const canvas = $(id), ctx = canvas.getContext("2d");
-      ctx.clearRect(0,0,canvas.width,canvas.height);
-      ctx.font = "12px Segoe UI";
-      ctx.fillStyle = "#64748b";
-      ctx.fillText("0", 154, 292);
-      ctx.fillText(String(maxValue.toFixed ? maxValue.toFixed(2) : maxValue), 690, 292);
-      rows.forEach((row, i) => {
-        const y = 26 + i * 34;
-        const value = Number(row.value || 0);
-        const width = Math.max(0, Math.min(520, (value / maxValue) * 520));
-        ctx.fillStyle = "#42536a";
-        ctx.fillText(row.label, 12, y + 17);
-        ctx.fillStyle = "#e2e8f0";
-        ctx.fillRect(155, y, 520, 18);
-        ctx.fillStyle = row.color;
-        ctx.fillRect(155, y, width, 18);
-        ctx.fillStyle = "#172033";
-        ctx.fillText(fmt(value), 688, y + 14);
+    function lineSeries(trainingSeries, keys) {
+      return roles.map(role => ({
+        label: role.label,
+        color: role.color,
+        points: (trainingSeries[role.key]?.steps || [])
+          .map(row => ({ x:val(row, ["step", "global_step"]), y:val(row, keys) }))
+          .filter(point => point.x !== null && point.y !== null),
+      }));
+    }
+
+    function invalidSeries(trainingSeries) {
+      const out = [];
+      for (const role of roles) {
+        for (const kind of [
+          { key:"invalid_payloads", label:"payloads", color:"#c2410c" },
+          { key:"invalid_actions", label:"actions", color:"#b7791f" },
+        ]) {
+          out.push({
+            label: `${role.label} ${kind.label}`,
+            color: kind.color,
+            points: (trainingSeries[role.key]?.reward_batches || [])
+              .map(row => ({ x:val(row, ["call", "step"]), y:val(row, [kind.key]) }))
+              .filter(point => point.x !== null && point.y !== null),
+          });
+        }
+      }
+      return out;
+    }
+
+    function drawLineChart(id, series, yLabel, options = {}) {
+      const canvas = $(id);
+      const ctx = prepCanvas(canvas);
+      const bounds = chartBounds(canvas);
+      const points = series.flatMap(s => s.points);
+      if (!points.length) return drawEmpty(ctx, canvas, "No training series found");
+      const minX = Math.min(...points.map(p => p.x));
+      const maxX = Math.max(...points.map(p => p.x));
+      let minY = options.minY ?? Math.min(...points.map(p => p.y));
+      let maxY = options.maxY ?? Math.max(...points.map(p => p.y));
+      if (minY === maxY) { minY -= 1; maxY += 1; }
+      drawAxes(ctx, bounds, minX, maxX, minY, maxY, yLabel);
+      for (const item of series) {
+        drawPath(ctx, bounds, item.points, minX, maxX, minY, maxY, item.color);
+      }
+    }
+
+    function drawInvalidChart(id, series) {
+      const canvas = $(id);
+      const ctx = prepCanvas(canvas);
+      const bounds = chartBounds(canvas);
+      const points = series.flatMap(s => s.points);
+      if (!points.length) return drawEmpty(ctx, canvas, "No reward batch diagnostics found");
+      const minX = Math.min(...points.map(p => p.x));
+      const maxX = Math.max(...points.map(p => p.x));
+      const maxY = Math.max(1, ...points.map(p => p.y));
+      drawAxes(ctx, bounds, minX, maxX, 0, maxY, "count");
+      series.forEach((item, index) => {
+        const offset = (index - 1.5) * 5;
+        drawBars(ctx, bounds, item.points, minX, maxX, 0, maxY, item.color, offset);
       });
+    }
+
+    function prepCanvas(canvas) {
+      const ratio = window.devicePixelRatio || 1;
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = Math.max(320, Math.round(rect.width * ratio));
+      canvas.height = Math.max(220, Math.round(rect.height * ratio));
+      const ctx = canvas.getContext("2d");
+      ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+      ctx.clearRect(0, 0, rect.width, rect.height);
+      ctx.font = "12px Segoe UI, Arial";
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      return ctx;
+    }
+
+    function chartBounds(canvas) {
+      const rect = canvas.getBoundingClientRect();
+      return { left:52, top:18, right:rect.width - 18, bottom:rect.height - 34, width:rect.width, height:rect.height };
+    }
+
+    function drawAxes(ctx, b, minX, maxX, minY, maxY, yLabel) {
+      ctx.strokeStyle = "#d8e0ea";
+      ctx.lineWidth = 1;
+      ctx.fillStyle = "#667085";
+      for (let i = 0; i <= 4; i++) {
+        const y = b.bottom - ((b.bottom - b.top) * i / 4);
+        const value = minY + ((maxY - minY) * i / 4);
+        ctx.beginPath();
+        ctx.moveTo(b.left, y);
+        ctx.lineTo(b.right, y);
+        ctx.stroke();
+        ctx.fillText(fmt(value), 8, y + 4);
+      }
+      ctx.fillText(yLabel, b.left, 11);
+      ctx.fillText(String(minX), b.left, b.height - 12);
+      ctx.fillText(String(maxX), b.right - 22, b.height - 12);
+    }
+
+    function drawPath(ctx, b, points, minX, maxX, minY, maxY, color) {
+      if (!points.length) return;
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2.4;
+      ctx.beginPath();
+      points.forEach((point, index) => {
+        const x = scale(point.x, minX, maxX, b.left, b.right);
+        const y = scale(point.y, minY, maxY, b.bottom, b.top);
+        if (index === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+      ctx.stroke();
+      ctx.fillStyle = color;
+      points.forEach(point => {
+        const x = scale(point.x, minX, maxX, b.left, b.right);
+        const y = scale(point.y, minY, maxY, b.bottom, b.top);
+        ctx.beginPath();
+        ctx.arc(x, y, 2.7, 0, Math.PI * 2);
+        ctx.fill();
+      });
+    }
+
+    function drawBars(ctx, b, points, minX, maxX, minY, maxY, color, offset) {
+      ctx.fillStyle = color;
+      const width = Math.max(3, Math.min(10, (b.right - b.left) / Math.max(12, points.length * 4)));
+      for (const point of points) {
+        const x = scale(point.x, minX, maxX, b.left, b.right) + offset;
+        const y = scale(point.y, minY, maxY, b.bottom, b.top);
+        ctx.globalAlpha = 0.82;
+        ctx.fillRect(x - width / 2, y, width, b.bottom - y);
+        ctx.globalAlpha = 1;
+      }
+    }
+
+    function renderHeldout(comparisons) {
+      const rows = [];
+      for (const role of roles) {
+        const base = comparisons.find(row => row.role === role.key && row.label === "base");
+        const variants = comparisons.filter(row => row.role === role.key && row.label !== "base");
+        for (const variant of variants) rows.push({ role:role.key, base, variant });
+      }
+      $("comparisonNote").textContent = rows.length ? "base vs SFT / GRPO variants" : "no held-out eval rows";
+      $("heldout").innerHTML = rows.length ? rows.map(row => heldoutRow(row)).join("") : `<tr><td colspan="10"><div class="empty">No held-out comparisons available.</div></td></tr>`;
+    }
+
+    function heldoutRow({ role, base, variant }) {
+      const roleKey = roleScoreKey(role);
+      const globalDelta = Number(variant?.mean_global_score) - Number(base?.mean_global_score);
+      const roleDelta = Number(variant?.[roleKey]) - Number(base?.[roleKey]);
+      const rawDelta = Number(variant?.mean_raw_reward) - Number(base?.mean_raw_reward);
+      const invalids = `${Number(variant?.invalid_payloads ?? 0)} / ${Number(variant?.invalid_actions ?? 0)}`;
+      return `
+        <tr>
+          <td>${escapeHtml(role)}</td>
+          <td>${escapeHtml(variant?.label || "variant")}</td>
+          <td class="number">${fmt(base?.mean_global_score)}</td>
+          <td class="number">${fmt(variant?.mean_global_score)}</td>
+          <td class="number ${deltaClass(globalDelta)}">${signed(globalDelta)}</td>
+          <td class="number">${fmt(base?.[roleKey])}</td>
+          <td class="number">${fmt(variant?.[roleKey])}</td>
+          <td class="number ${deltaClass(roleDelta)}">${signed(roleDelta)}</td>
+          <td class="number">${invalids}</td>
+          <td class="number ${deltaClass(rawDelta)}">${signed(rawDelta, 2)}</td>
+        </tr>`;
+    }
+
+    function deltaClass(value) {
+      if (!Number.isFinite(value) || value === 0) return "";
+      return value > 0 ? "delta good" : "delta bad";
+    }
+
+    function signed(value, digits = 3) {
+      if (!Number.isFinite(value)) return "pending";
+      return (value >= 0 ? "+" : "") + fmt(value, digits);
+    }
+
+    function scale(value, minIn, maxIn, minOut, maxOut) {
+      if (minIn === maxIn) return (minOut + maxOut) / 2;
+      return minOut + ((value - minIn) / (maxIn - minIn)) * (maxOut - minOut);
+    }
+
+    function avg(values) {
+      const nums = values.map(Number).filter(Number.isFinite);
+      return nums.length ? nums.reduce((sum, n) => sum + n, 0) / nums.length : null;
+    }
+
+    function drawEmpty(ctx, canvas, message) {
+      const rect = canvas.getBoundingClientRect();
+      ctx.fillStyle = "#667085";
+      ctx.textAlign = "center";
+      ctx.fillText(message, rect.width / 2, rect.height / 2);
+      ctx.textAlign = "left";
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? "").replace(/[&<>"']/g, char => ({
+        "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;"
+      })[char]);
     }
 
     $("refresh").onclick = load;
+    window.addEventListener("resize", () => load());
     load();
   </script>
 </body>
