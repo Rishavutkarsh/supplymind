@@ -16,6 +16,7 @@
 from __future__ import annotations
 
 import argparse
+import inspect
 import json
 import os
 import re
@@ -280,6 +281,30 @@ def baseline_role_probe(role: str, task_id: str, seeds: list[int]) -> None:
         )
 
 
+def make_grpo_config(output_dir: str, max_steps: int, hub_model_id: str, role: str) -> GRPOConfig:
+    requested = {
+        "output_dir": output_dir,
+        "max_steps": max_steps,
+        "per_device_train_batch_size": 1,
+        "gradient_accumulation_steps": 2,
+        "num_generations": 2,
+        "max_prompt_length": 2048,
+        "max_completion_length": 512,
+        "logging_steps": 1,
+        "report_to": ["trackio"],
+        "project": "supplymind",
+        "run_name": f"{role}-grpo-smoke",
+        "push_to_hub": True,
+        "hub_model_id": hub_model_id,
+    }
+    signature = inspect.signature(GRPOConfig)
+    supported = {key: value for key, value in requested.items() if key in signature.parameters}
+    dropped = sorted(set(requested) - set(supported))
+    if dropped:
+        log("grpo_config_dropped_unsupported_keys", dropped=dropped)
+    return GRPOConfig(**supported)
+
+
 def main() -> None:
     started = time.time()
     args = parse_args()
@@ -318,21 +343,7 @@ def main() -> None:
             target_modules=["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"],
             task_type="CAUSAL_LM",
         ),
-        args=GRPOConfig(
-            output_dir=output_dir,
-            max_steps=args.max_steps,
-            per_device_train_batch_size=1,
-            gradient_accumulation_steps=2,
-            num_generations=2,
-            max_prompt_length=2048,
-            max_completion_length=512,
-            logging_steps=1,
-            report_to=["trackio"],
-            project="supplymind",
-            run_name=f"{args.role}-grpo-smoke",
-            push_to_hub=True,
-            hub_model_id=hub_model_id,
-        ),
+        args=make_grpo_config(output_dir, args.max_steps, hub_model_id, args.role),
     )
     log("training_start", role=args.role, max_steps=args.max_steps)
     trainer.train()
