@@ -197,10 +197,10 @@ python scripts/hf_train_supplymind_roles.py --help
 python scripts/hf_eval_supplymind_adapters.py --help
 ```
 
-Colab/HF training scaffold:
+Runnable training notebook:
 
 ```text
-colab/supplymind_v2_grpo_colab.py
+SupplyMind_Training_Run.ipynb
 ```
 
 ## Project Structure
