@@ -276,6 +276,10 @@ We trained role policies with an SFT warm-start followed by GRPO. Held-out role 
 | center | SFT parent | 0.5327 | 0.5977 | 186.56 | 0 | 22 |
 | center | GRPO child | 0.6469 | 0.7626 | 239.21 | 0 | 0 |
 
+![Center role score improves after GRPO](assets/blog/center_role_score_improvement.png)
+
+![Warehouse role score improves modestly after GRPO](assets/blog/warehouse_role_score_improvement.png)
+
 The training evidence is simple:
 
 - **Base behavior was unreliable**: the untrained/base policy often produced invalid or low-quality actions.
@@ -294,7 +298,13 @@ center reward                 52.59
 average warehouse reward      28.04
 ```
 
+![Joint validation: trained policies playing together](assets/blog/joint_trained_agents_reward.png)
+
 We use this joint rollout as validation that the trained role policies can interact coherently in the same multi-agent world. The main improvement claim remains the cleaner held-out role-training result above.
+
+The center GRPO run also shows the expected noisy-but-useful RL signal: loss alone is not the whole story, so we track reward and invalid actions alongside it.
+
+![Center SFT and GRPO training curves](assets/blog/center_training_loss_curves.png)
 
 The honest claim is:
 
