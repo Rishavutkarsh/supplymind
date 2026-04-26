@@ -59,15 +59,25 @@ def prepare_repo() -> Path:
     os.environ["HF_HUB_DISABLE_PROGRESS_BARS"] = "1"
     os.environ["PYTHONUTF8"] = "1"
     log("downloading_supplymind_space", repo_id=REPO_ID)
+    target_dir = Path("supplymind_snapshot").resolve()
     local_dir = Path(
         snapshot_download(
             repo_id=REPO_ID,
             repo_type="space",
             allow_patterns=["src/**", "configs/**"],
+            local_dir=target_dir,
         )
     )
+    config_path = local_dir / "configs" / "supplymind_v2_rewards.yaml"
+    os.environ["SUPPLYMIND_REWARD_CONFIG"] = str(config_path)
     sys.path.insert(0, str(local_dir / "src"))
-    log("downloaded_supplymind_space", path=str(local_dir))
+    log(
+        "downloaded_supplymind_space",
+        path=str(local_dir),
+        src_exists=(local_dir / "src").exists(),
+        config_path=str(config_path),
+        config_exists=config_path.exists(),
+    )
     return local_dir
 
 
