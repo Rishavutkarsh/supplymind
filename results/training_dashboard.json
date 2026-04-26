@@ -1,6 +1,6 @@
 {
-  "status": "pipeline_upgraded",
-  "updated_at": "2026-04-26 11:10 IST",
+  "status": "center_eval_visualized",
+  "updated_at": "2026-04-26 11:55 IST",
   "hardware": "a10g-small",
   "summary": "30-step smoke training completed and pushed adapters. Eval did not show improvement yet; this validates the pipeline but not learning progress.",
   "runs": [
@@ -35,49 +35,44 @@
   ],
   "comparisons": [
     {
-      "role": "center",
-      "label": "base",
-      "mean_global_score": 0.5746333333,
-      "mean_center_role_score": 0.6451333333,
-      "mean_warehouse_role_score": 0.7186,
-      "mean_raw_reward": 233.8713333333,
+      "invalid_actions": 0,
       "invalid_payloads": 0,
-      "invalid_actions": 0
-    },
-    {
-      "role": "center",
-      "label": "adapter",
-      "mean_global_score": 0.5746333333,
-      "mean_center_role_score": 0.6451333333,
-      "mean_warehouse_role_score": 0.7186,
-      "mean_raw_reward": 233.8713333333,
-      "invalid_payloads": 0,
-      "invalid_actions": 0
-    },
-    {
-      "role": "warehouse",
       "label": "base",
-      "mean_global_score": 0.0001,
-      "mean_center_role_score": 0.0001,
-      "mean_warehouse_role_score": 0.0001,
-      "mean_raw_reward": -893.7133333333,
-      "invalid_payloads": 1,
-      "invalid_actions": 0
+      "mean_center_role_score": 0.6335666666666666,
+      "mean_global_score": 0.5172333333333333,
+      "mean_raw_reward": 176.11666666666667,
+      "mean_warehouse_role_score": 0.6164666666666667,
+      "message": "eval_result",
+      "role": "center"
     },
     {
-      "role": "warehouse",
-      "label": "adapter",
-      "mean_global_score": 0.0001,
-      "mean_center_role_score": 0.0001,
-      "mean_warehouse_role_score": 0.0001,
-      "mean_raw_reward": -893.7133333333,
-      "invalid_payloads": 1,
-      "invalid_actions": 0
+      "invalid_actions": 0,
+      "invalid_payloads": 5,
+      "label": "sft",
+      "mean_center_role_score": 0.6335666666666666,
+      "mean_global_score": 0.5172333333333333,
+      "mean_raw_reward": 176.11666666666667,
+      "mean_warehouse_role_score": 0.6164666666666667,
+      "message": "eval_result",
+      "role": "center"
+    },
+    {
+      "invalid_actions": 0,
+      "invalid_payloads": 0,
+      "label": "grpo",
+      "mean_center_role_score": 0.6335666666666666,
+      "mean_global_score": 0.5172333333333333,
+      "mean_raw_reward": 176.11666666666667,
+      "mean_warehouse_role_score": 0.6164666666666667,
+      "message": "eval_result",
+      "role": "center"
     }
   ],
   "training_series": {
     "center": {
       "source_log": "results\\center_train_job.log",
+      "role": "center",
+      "phase": null,
       "steps": [
         {
           "loss": 0.0,
@@ -999,6 +994,8 @@
     },
     "warehouse": {
       "source_log": "results\\warehouse_train_job.log",
+      "role": "warehouse",
+      "phase": null,
       "steps": [
         {
           "loss": 0.0,

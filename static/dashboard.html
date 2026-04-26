@@ -28,6 +28,13 @@
     .metric span { display:block; color:var(--muted); font-size:12px; }
     .metric strong { display:block; margin-top:8px; font-size:24px; line-height:1; }
     .metric small { display:block; margin-top:7px; color:var(--muted); font-size:12px; }
+    .verdicts { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:10px; margin-bottom:12px; }
+    .verdict { border:1px solid var(--line); border-left:4px solid var(--muted); border-radius:8px; padding:10px 12px; background:#fbfdff; }
+    .verdict.good { border-left-color:var(--green); }
+    .verdict.bad { border-left-color:var(--red); }
+    .verdict.warn { border-left-color:var(--amber); }
+    .verdict strong { display:block; font-size:15px; }
+    .verdict span { display:block; color:var(--muted); margin-top:5px; font-size:12px; line-height:1.35; }
     .chart-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
     .wide { grid-column:1 / -1; }
     .chart-head { display:flex; justify-content:space-between; gap:12px; align-items:flex-start; margin-bottom:8px; }
@@ -46,6 +53,7 @@
       .summary { grid-template-columns:repeat(2, minmax(0, 1fr)); }
       .chart-grid { grid-template-columns:1fr; }
       .wide { grid-column:auto; }
+      .verdicts { grid-template-columns:1fr; }
     }
     @media (max-width:640px) {
       header { align-items:flex-start; }
@@ -118,6 +126,8 @@
         <h2>Held-out Comparison</h2>
         <div class="muted" id="comparisonNote"></div>
       </div>
+      <div class="verdicts" id="verdicts"></div>
+      <canvas id="heldoutPlot" width="1200" height="320"></canvas>
       <table>
         <thead>
           <tr>
@@ -380,7 +390,81 @@
         for (const variant of variants) rows.push({ role:role.key, base, variant });
       }
       $("comparisonNote").textContent = rows.length ? "base vs SFT / GRPO variants" : "no held-out eval rows";
+      renderVerdicts(comparisons);
+      drawHeldoutBars("heldoutPlot", comparisons);
       $("heldout").innerHTML = rows.length ? rows.map(row => heldoutRow(row)).join("") : `<tr><td colspan="10"><div class="empty">No held-out comparisons available.</div></td></tr>`;
+    }
+
+    function renderVerdicts(comparisons) {
+      const cards = compareRoles.map(role => {
+        const base = comparisons.find(row => row.role === role.key && row.label === "base");
+        const sft = comparisons.find(row => row.role === role.key && row.label === "sft");
+        const grpo = comparisons.find(row => row.role === role.key && row.label === "grpo");
+        if (!base) return verdictCard(role.label, "pending", "No held-out base run yet.", "warn");
+        const roleKey = roleScoreKey(role.key);
+        const sftDelta = sft ? Number(sft[roleKey]) - Number(base[roleKey]) : null;
+        const grpoDelta = grpo && sft ? Number(grpo[roleKey]) - Number(sft[roleKey]) : null;
+        const invalidNote = [sft, grpo].filter(Boolean).map(row => `${row.label}: ${Number(row.invalid_payloads || 0)} invalid payloads`).join(" · ");
+        if (sftDelta === null) return verdictCard(role.label, "waiting for SFT eval", invalidNote || "SFT result not available yet.", "warn");
+        if (sftDelta > 0.01 && (grpoDelta === null || grpoDelta >= -0.005)) {
+          return verdictCard(role.label, "format/scaffold improved", `SFT role score ${signed(sftDelta)} vs base. ${invalidNote}`, "good");
+        }
+        if (grpoDelta !== null && grpoDelta > 0.01) {
+          return verdictCard(role.label, "RL improved after SFT", `GRPO role score ${signed(grpoDelta)} vs SFT. ${invalidNote}`, "good");
+        }
+        if (sftDelta <= 0 && (grpoDelta === null || grpoDelta <= 0)) {
+          return verdictCard(role.label, "no held-out lift yet", `SFT ${signed(sftDelta)} vs base${grpoDelta === null ? "" : `, GRPO ${signed(grpoDelta)} vs SFT`}. ${invalidNote}`, "bad");
+        }
+        return verdictCard(role.label, "mixed result", `SFT ${signed(sftDelta)} vs base${grpoDelta === null ? "" : `, GRPO ${signed(grpoDelta)} vs SFT`}. ${invalidNote}`, "warn");
+      });
+      $("verdicts").innerHTML = cards.join("");
+    }
+
+    function verdictCard(role, title, note, status) {
+      return `<div class="verdict ${escapeHtml(status)}"><strong>${escapeHtml(role)}: ${escapeHtml(title)}</strong><span>${escapeHtml(note)}</span></div>`;
+    }
+
+    function drawHeldoutBars(id, comparisons) {
+      const canvas = $(id);
+      const ctx = prepCanvas(canvas);
+      const b = chartBounds(canvas);
+      const groups = [];
+      for (const role of compareRoles) {
+        for (const metric of [
+          { key:"mean_global_score", label:"global" },
+          { key:roleScoreKey(role.key), label:"role" },
+        ]) {
+          const rows = ["base", "sft", "grpo"].map(label => comparisons.find(row => row.role === role.key && row.label === label));
+          if (rows.some(Boolean)) groups.push({ role:role.key, metric:metric.label, rows, key:metric.key });
+        }
+      }
+      if (!groups.length) return drawEmpty(ctx, canvas, "No held-out comparison rows yet");
+      drawAxes(ctx, b, 0, groups.length, 0, 1, "score");
+      const colors = { base:"#64748b", sft:"#2563eb", grpo:"#7c3aed" };
+      const labels = ["base", "sft", "grpo"];
+      const groupWidth = (b.right - b.left) / groups.length;
+      groups.forEach((group, groupIndex) => {
+        labels.forEach((label, labelIndex) => {
+          const row = group.rows[labelIndex];
+          if (!row) return;
+          const value = Number(row[group.key]);
+          if (!Number.isFinite(value)) return;
+          const barW = Math.min(18, groupWidth / 5);
+          const x = b.left + groupIndex * groupWidth + groupWidth / 2 + (labelIndex - 1) * (barW + 3);
+          const y = scale(Math.max(0, Math.min(1, value)), 0, 1, b.bottom, b.top);
+          ctx.fillStyle = colors[label];
+          ctx.fillRect(x - barW / 2, y, barW, b.bottom - y);
+        });
+        ctx.fillStyle = "#667085";
+        ctx.textAlign = "center";
+        ctx.fillText(`${group.role} ${group.metric}`, b.left + groupIndex * groupWidth + groupWidth / 2, b.height - 12);
+        ctx.textAlign = "left";
+      });
+      renderLegend("comparisonNote", [
+        { label:"base", color:colors.base },
+        { label:"SFT", color:colors.sft },
+        { label:"GRPO", color:colors.grpo },
+      ]);
     }
 
     function heldoutRow({ role, base, variant }) {
