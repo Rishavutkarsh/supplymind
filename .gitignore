@@ -6,5 +6,6 @@ __pycache__/
 .venv/
 *.log
 results/*.json
+results/plots/*.png
 !results/v2_policy_eval.json
 outputs/

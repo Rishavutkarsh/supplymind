@@ -45,6 +45,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--max-steps", type=int, default=80)
     parser.add_argument("--max-length", type=int, default=2048)
     parser.add_argument("--center-non-empty-weight", type=int, default=3)
+    parser.add_argument("--warehouse-conservative-sft", action="store_true")
+    parser.add_argument("--warehouse-signal-limit", type=int, default=1)
     parser.add_argument("--hub-model-id", default="")
     parser.add_argument("--output-dir", default="")
     return parser.parse_args()
@@ -94,6 +96,8 @@ def compact_observation(observation: Any, role: str, warehouse_id: str | None = 
             "task_id": data["task_id"],
             "scenario_info": data["scenario_info"],
             "warehouse": warehouse,
+            "allowed_order_ids": [order["order_id"] for order in warehouse.get("local_orders", []) if order.get("status") == "pending"],
+            "allowed_transfer_proposal_ids": [proposal["proposal_id"] for proposal in warehouse.get("pending_transfer_proposals", [])],
             "pending_transfer_proposals": warehouse.get("pending_transfer_proposals", []),
             "feedback": data.get("feedback", {}),
         }
@@ -123,7 +127,8 @@ def system_prompt(role: str) -> str:
         "You control exactly one warehouse from the user observation. Return only strict JSON matching WarehouseAction: "
         "order_decisions, inventory_offers, inventory_requests, transfer_responses, and local_priority. "
         "The center is controlled by a fixed heuristic. Accept orders you can serve, request needed stock, "
-        "and reject bad or impossible commitments. Only use order_id and proposal_id values visible in this observation."
+        "and reject bad or impossible commitments. Only use order_id and proposal_id values visible in this observation. "
+        "Do not invent IDs, do not use markdown, and prefer fewer high-confidence actions over broad noisy actions."
     )
 
 
@@ -145,6 +150,58 @@ def center_action_is_empty(center_action: Any) -> bool:
     return not any(data.get(key) for key in data)
 
 
+def conservative_warehouse_action(observation: Any, warehouse_id: str, action: Any, signal_limit: int) -> Any:
+    from supplymind_env_v2.models import WarehouseAction
+
+    warehouse = observation.warehouses[warehouse_id]
+    pending_orders = [order for order in warehouse.local_orders if order.status == "pending"]
+    pending_ids = {order.order_id for order in pending_orders}
+    proposal_ids = {proposal.proposal_id for proposal in warehouse.pending_transfer_proposals}
+
+    order_decisions = [decision for decision in action.order_decisions if decision.order_id in pending_ids]
+    transfer_responses = [response for response in action.transfer_responses if response.proposal_id in proposal_ids]
+
+    pressure_by_sku: dict[str, float] = {}
+    shortage_by_sku: dict[str, int] = {}
+    for order in pending_orders:
+        value = order.units * order.customer_value_per_unit
+        pressure_by_sku[order.sku] = pressure_by_sku.get(order.sku, 0.0) + value
+        shortage = max(0, order.units - warehouse.inventory.get(order.sku, 0))
+        if shortage:
+            shortage_by_sku[order.sku] = max(shortage_by_sku.get(order.sku, 0), shortage)
+
+    offers = []
+    for offer in action.inventory_offers:
+        if offer.sku in pressure_by_sku:
+            continue
+        safety = warehouse.safety_stock.get(offer.sku, 1)
+        surplus = max(0, warehouse.inventory.get(offer.sku, 0) - safety)
+        if surplus >= 4:
+            offers.append({"sku": offer.sku, "units": min(offer.units, surplus, 2), "ask_price": offer.ask_price})
+    offers = [offer for offer in offers if offer["units"] > 0][: max(0, signal_limit)]
+
+    requests = []
+    ranked_shortages = sorted(shortage_by_sku.items(), key=lambda item: (-pressure_by_sku.get(item[0], 0.0), item[0]))
+    for sku, units in ranked_shortages[: max(0, signal_limit)]:
+        request = next((item for item in action.inventory_requests if item.sku == sku), None)
+        if request is not None:
+            requests.append({"sku": sku, "units": min(max(1, units), request.units, 3), "max_price": request.max_price})
+
+    priority_skus = [sku for sku, _value in sorted(pressure_by_sku.items(), key=lambda item: -item[1])[:2]]
+    priorities = [
+        {"sku": sku, "priority": max(1, 3 - index)}
+        for index, sku in enumerate(priority_skus)
+    ]
+
+    return WarehouseAction(
+        order_decisions=order_decisions,
+        inventory_offers=offers,
+        inventory_requests=requests,
+        transfer_responses=transfer_responses,
+        local_priority=priorities,
+    )
+
+
 def _chat_text(tokenizer: Any, system: str, user: dict[str, Any], assistant: str | None) -> tuple[str, str]:
     prompt_messages = [
         {"role": "system", "content": system},
@@ -158,7 +215,15 @@ def _chat_text(tokenizer: Any, system: str, user: dict[str, Any], assistant: str
     return prompt_text, full_text
 
 
-def build_rows(role: str, task_ids: list[str], seeds: list[int], tokenizer: Any, center_non_empty_weight: int) -> list[dict[str, str]]:
+def build_rows(
+    role: str,
+    task_ids: list[str],
+    seeds: list[int],
+    tokenizer: Any,
+    center_non_empty_weight: int,
+    warehouse_conservative_sft: bool,
+    warehouse_signal_limit: int,
+) -> list[dict[str, str]]:
     from supplymind_env_v2.environment import V2SupplyMindEnv
     from supplymind_env_v2.policies import heuristic_joint_policy
 
@@ -184,7 +249,10 @@ def build_rows(role: str, task_ids: list[str], seeds: list[int], tokenizer: Any,
                 else:
                     for warehouse_id in observation.warehouses:
                         user = compact_observation(observation, role, warehouse_id)
-                        completion = action_completion_for_warehouse(joint_action, warehouse_id)
+                        warehouse_action = joint_action.warehouse_actions[warehouse_id]
+                        if warehouse_conservative_sft:
+                            warehouse_action = conservative_warehouse_action(observation, warehouse_id, warehouse_action, warehouse_signal_limit)
+                        completion = json.dumps(warehouse_action.model_dump(mode="json"), separators=(",", ":"))
                         prompt_text, text = _chat_text(tokenizer, system_prompt(role), user, completion)
                         rows.append(
                             {
@@ -206,6 +274,14 @@ def build_rows(role: str, task_ids: list[str], seeds: list[int], tokenizer: Any,
             empty_teacher_steps=center_empty,
             non_empty_teacher_steps=center_non_empty,
             non_empty_weight=center_non_empty_weight,
+            total_rows=len(rows),
+        )
+    elif warehouse_conservative_sft:
+        log(
+            "warehouse_sft_conservative",
+            task_ids=task_ids,
+            seeds=seeds,
+            signal_limit=warehouse_signal_limit,
             total_rows=len(rows),
         )
     return rows
@@ -288,7 +364,15 @@ def main() -> None:
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
 
-    rows = build_rows(args.role, task_ids, seeds, tokenizer, args.center_non_empty_weight)
+    rows = build_rows(
+        args.role,
+        task_ids,
+        seeds,
+        tokenizer,
+        args.center_non_empty_weight,
+        args.warehouse_conservative_sft,
+        args.warehouse_signal_limit,
+    )
     dataset = Dataset.from_list(rows)
     log("dataset_ready", role=args.role, rows=len(rows), task_ids=task_ids, seeds=seeds, hub_model_id=hub_model_id)
     baseline_probe(args.role, task_ids[0], seeds)
