@@ -51,6 +51,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--task-id", default="v2_train_easy")
     parser.add_argument("--seeds", default="101,113,127")
     parser.add_argument("--max-steps", type=int, default=30)
+    parser.add_argument("--max-completion-length", type=int, default=256)
     parser.add_argument("--hub-model-id", default="")
     parser.add_argument("--output-dir", default="")
     return parser.parse_args()
@@ -281,7 +282,13 @@ def baseline_role_probe(role: str, task_id: str, seeds: list[int]) -> None:
         )
 
 
-def make_grpo_config(output_dir: str, max_steps: int, hub_model_id: str, role: str) -> GRPOConfig:
+def make_grpo_config(
+    output_dir: str,
+    max_steps: int,
+    hub_model_id: str,
+    role: str,
+    max_completion_length: int,
+) -> GRPOConfig:
     requested = {
         "output_dir": output_dir,
         "max_steps": max_steps,
@@ -289,7 +296,7 @@ def make_grpo_config(output_dir: str, max_steps: int, hub_model_id: str, role: s
         "gradient_accumulation_steps": 2,
         "num_generations": 2,
         "max_prompt_length": 2048,
-        "max_completion_length": 512,
+        "max_completion_length": max_completion_length,
         "logging_steps": 1,
         "report_to": ["trackio"],
         "project": "supplymind",
@@ -322,6 +329,7 @@ def main() -> None:
         task_id=args.task_id,
         seeds=seeds,
         max_steps=args.max_steps,
+        max_completion_length=args.max_completion_length,
         hub_model_id=hub_model_id,
     )
     baseline_role_probe(args.role, args.task_id, seeds)
@@ -343,9 +351,9 @@ def main() -> None:
             target_modules=["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"],
             task_type="CAUSAL_LM",
         ),
-        args=make_grpo_config(output_dir, args.max_steps, hub_model_id, args.role),
+        args=make_grpo_config(output_dir, args.max_steps, hub_model_id, args.role, args.max_completion_length),
     )
-    log("training_start", role=args.role, max_steps=args.max_steps)
+    log("training_start", role=args.role, max_steps=args.max_steps, max_completion_length=args.max_completion_length)
     trainer.train()
     log("training_done", elapsed_seconds=round(time.time() - started, 2))
     log("pushing_model", hub_model_id=hub_model_id)
