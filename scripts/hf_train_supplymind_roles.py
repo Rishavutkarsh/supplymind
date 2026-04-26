@@ -56,8 +56,16 @@ def parse_args() -> argparse.Namespace:
 
 
 def prepare_repo() -> Path:
+    os.environ["HF_HUB_DISABLE_PROGRESS_BARS"] = "1"
+    os.environ["PYTHONUTF8"] = "1"
     log("downloading_supplymind_space", repo_id=REPO_ID)
-    local_dir = Path(snapshot_download(repo_id=REPO_ID, repo_type="space"))
+    local_dir = Path(
+        snapshot_download(
+            repo_id=REPO_ID,
+            repo_type="space",
+            allow_patterns=["src/**", "configs/**"],
+        )
+    )
     sys.path.insert(0, str(local_dir / "src"))
     log("downloaded_supplymind_space", path=str(local_dir))
     return local_dir
