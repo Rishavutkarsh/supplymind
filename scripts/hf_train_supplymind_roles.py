@@ -20,6 +20,7 @@ import json
 import os
 import re
 import sys
+import time
 from pathlib import Path
 from statistics import mean
 from typing import Any
@@ -35,6 +36,12 @@ REPO_ID = "rishavutk/supplymind"
 MODEL_ID = "Qwen/Qwen2.5-0.5B-Instruct"
 REWARD_SCALE = 10.0
 REWARD_CLIP = 20.0
+REWARD_LOG_EVERY = 10
+
+
+def log(message: str, **fields: Any) -> None:
+    payload = {"message": message, **fields}
+    print(json.dumps(payload, sort_keys=True), flush=True)
 
 
 def parse_args() -> argparse.Namespace:
@@ -49,8 +56,10 @@ def parse_args() -> argparse.Namespace:
 
 
 def prepare_repo() -> Path:
+    log("downloading_supplymind_space", repo_id=REPO_ID)
     local_dir = Path(snapshot_download(repo_id=REPO_ID, repo_type="space"))
     sys.path.insert(0, str(local_dir / "src"))
+    log("downloaded_supplymind_space", path=str(local_dir))
     return local_dir
 
 
@@ -156,6 +165,8 @@ def make_reward_fn(role: str):
     from supplymind_env_v2.models import CenterAction, V2JointAction, V2WarehouseRoleAction
     from supplymind_env_v2.policies import fixed_center_action, fixed_warehouse_actions, heuristic_joint_policy
 
+    call_count = 0
+
     def replay_to_round(task_id: str, seed: int, round_index: int):
         env = V2SupplyMindEnv(default_task_id=task_id)
         observation = env.reset_internal(task_id, seed)
@@ -165,11 +176,16 @@ def make_reward_fn(role: str):
         return env, observation
 
     def reward_completions(prompts, completions, task_id, seed, round_index, **kwargs) -> list[float]:
+        nonlocal call_count
+        call_count += 1
         rewards: list[float] = []
+        invalid_payloads = 0
+        invalid_actions = 0
         for completion, current_task, current_seed, current_round in zip(completions, task_id, seed, round_index, strict=True):
             payload = extract_json(completion)
             if payload is None:
                 rewards.append(-8.0)
+                invalid_payloads += 1
                 continue
             env, observation = replay_to_round(current_task, int(current_seed), int(current_round))
             before = dict(env.agent_rewards)
@@ -187,9 +203,11 @@ def make_reward_fn(role: str):
                     action = V2JointAction.model_validate(payload)
             except Exception:
                 rewards.append(-8.0)
+                invalid_payloads += 1
                 continue
             result = env.step(action, grade_terminal=False)
             invalid_count = len(result.observation.feedback.get("invalid_action_details", []))
+            invalid_actions += invalid_count
             if role == "center":
                 role_delta = env.agent_rewards["center"] - before.get("center", 0.0)
             elif role == "warehouse":
@@ -199,12 +217,51 @@ def make_reward_fn(role: str):
                 role_delta = float(result.reward.step_reward)
             scaled = max(-REWARD_CLIP, min(REWARD_CLIP, role_delta / REWARD_SCALE))
             rewards.append(scaled + 1.0 - 2.0 * invalid_count)
+        if call_count == 1 or call_count % REWARD_LOG_EVERY == 0:
+            log(
+                "reward_batch",
+                role=role,
+                call=call_count,
+                count=len(rewards),
+                mean_reward=round(mean(rewards), 4) if rewards else None,
+                min_reward=round(min(rewards), 4) if rewards else None,
+                max_reward=round(max(rewards), 4) if rewards else None,
+                invalid_payloads=invalid_payloads,
+                invalid_actions=invalid_actions,
+            )
         return rewards
 
     return reward_completions
 
 
+def baseline_role_probe(role: str, task_id: str, seeds: list[int]) -> None:
+    from supplymind_env_v2.environment import V2SupplyMindEnv
+    from supplymind_env_v2.policies import heuristic_joint_policy, no_op_policy
+
+    for policy_name, policy_fn in (("no_op", no_op_policy), ("heuristic", heuristic_joint_policy)):
+        summaries: list[dict[str, Any]] = []
+        for seed in seeds:
+            env = V2SupplyMindEnv(default_task_id=task_id)
+            observation = env.reset_internal(task_id, seed)
+            while not env.done:
+                result = env.step(policy_fn(observation))
+                observation = result.observation
+            summaries.append(env.last_episode_summary or {})
+        log(
+            "baseline_probe",
+            role=role,
+            policy=policy_name,
+            task_id=task_id,
+            seeds=seeds,
+            mean_score=round(mean(float(row.get("graded_score", 0.0)) for row in summaries), 4),
+            mean_raw_reward=round(mean(float(row.get("raw_reward", 0.0)) for row in summaries), 3),
+            mean_center_reward=round(mean(float(row.get("center_reward", 0.0)) for row in summaries), 3),
+            mean_average_warehouse_reward=round(mean(float(row.get("average_warehouse_reward", 0.0)) for row in summaries), 3),
+        )
+
+
 def main() -> None:
+    started = time.time()
     args = parse_args()
     prepare_repo()
     seeds = [int(value.strip()) for value in args.seeds.split(",") if value.strip()]
@@ -213,10 +270,21 @@ def main() -> None:
 
     rows = build_rows(args.role, args.task_id, seeds)
     dataset = Dataset.from_list(rows)
-    print(json.dumps({"role": args.role, "rows": len(rows), "task_id": args.task_id, "seeds": seeds}, indent=2), flush=True)
+    log(
+        "dataset_ready",
+        role=args.role,
+        rows=len(rows),
+        task_id=args.task_id,
+        seeds=seeds,
+        max_steps=args.max_steps,
+        hub_model_id=hub_model_id,
+    )
+    baseline_role_probe(args.role, args.task_id, seeds)
 
+    log("loading_model", model_id=MODEL_ID)
     tokenizer = AutoTokenizer.from_pretrained(MODEL_ID)
     model = AutoModelForCausalLM.from_pretrained(MODEL_ID, torch_dtype="auto", device_map="auto")
+    log("model_loaded", model_id=MODEL_ID)
 
     trainer = GRPOTrainer(
         model=model,
@@ -246,9 +314,12 @@ def main() -> None:
             hub_model_id=hub_model_id,
         ),
     )
+    log("training_start", role=args.role, max_steps=args.max_steps)
     trainer.train()
+    log("training_done", elapsed_seconds=round(time.time() - started, 2))
+    log("pushing_model", hub_model_id=hub_model_id)
     trainer.push_to_hub()
-    print(json.dumps({"status": "done", "hub_model_id": hub_model_id}, indent=2), flush=True)
+    log("job_done", hub_model_id=hub_model_id, elapsed_seconds=round(time.time() - started, 2))
 
 
 if __name__ == "__main__":
