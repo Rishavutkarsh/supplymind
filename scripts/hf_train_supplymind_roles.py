@@ -298,11 +298,12 @@ def make_grpo_config(
         "max_prompt_length": 2048,
         "max_completion_length": max_completion_length,
         "logging_steps": 1,
-        "report_to": ["trackio"],
+        "report_to": [],
         "project": "supplymind",
         "run_name": f"{role}-grpo-smoke",
-        "push_to_hub": True,
+        "push_to_hub": False,
         "hub_model_id": hub_model_id,
+        "save_strategy": "no",
     }
     signature = inspect.signature(GRPOConfig)
     supported = {key: value for key, value in requested.items() if key in signature.parameters}
