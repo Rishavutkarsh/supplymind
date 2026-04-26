@@ -107,7 +107,7 @@ def extract_json(completion: Any) -> dict[str, Any] | None:
         return None
 
 
-def compact_observation(observation: Any, role: str) -> dict[str, Any]:
+def compact_observation(observation: Any, role: str, warehouse_id: str | None = None) -> dict[str, Any]:
     data = observation.model_dump(mode="json")
     data["scenario_info"].pop("public_rules", None)
     if role == "center":
@@ -123,6 +123,19 @@ def compact_observation(observation: Any, role: str) -> dict[str, Any]:
             "feedback": data.get("feedback", {}),
         }
     if role == "warehouse":
+        if warehouse_id:
+            warehouse = data["warehouses"][warehouse_id]
+            return {
+                "role": "warehouse",
+                "warehouse_id": warehouse_id,
+                "round_index": data["round_index"],
+                "remaining_rounds": data["remaining_rounds"],
+                "task_id": data["task_id"],
+                "scenario_info": data["scenario_info"],
+                "warehouse": warehouse,
+                "pending_transfer_proposals": warehouse.get("pending_transfer_proposals", []),
+                "feedback": data.get("feedback", {}),
+            }
         return {
             "role": "warehouse",
             "round_index": data["round_index"],
@@ -147,10 +160,10 @@ def system_prompt(role: str) -> str:
     if role == "warehouse":
         return (
             "You are the shared warehouse policy in SupplyMind, copied across all warehouses. "
-            "Return only strict JSON with key warehouse_actions mapping warehouse ids to actions. "
-            "Use order_decisions, inventory_offers, inventory_requests, transfer_responses, and local_priority. "
+            "You control exactly one warehouse from the user observation. Return only strict JSON matching WarehouseAction: "
+            "order_decisions, inventory_offers, inventory_requests, transfer_responses, and local_priority. "
             "The center is controlled by a fixed heuristic. Accept orders you can serve, request needed stock, "
-            "and reject bad or impossible commitments."
+            "and reject bad or impossible commitments. Only use order_id and proposal_id values visible in this observation."
         )
     return (
         "You are playing SupplyMind. Return only strict JSON with top-level keys warehouse_actions and central_action. "
@@ -178,6 +191,36 @@ def build_rows(role: str, task_id: str, seeds: list[int]) -> list[dict[str, Any]
                     "round_index": observation.round_index,
                 }
             )
+            result = env.step(heuristic_joint_policy(observation), grade_terminal=False)
+            observation = result.observation
+    return rows
+
+
+def build_warehouse_rows(task_id: str, seeds: list[int]) -> list[dict[str, Any]]:
+    from supplymind_env_v2.environment import V2SupplyMindEnv
+    from supplymind_env_v2.policies import heuristic_joint_policy
+
+    rows: list[dict[str, Any]] = []
+    for seed in seeds:
+        env = V2SupplyMindEnv(default_task_id=task_id)
+        observation = env.reset_internal(task_id, seed)
+        while not env.done:
+            for warehouse_id in observation.warehouses:
+                rows.append(
+                    {
+                        "prompt": [
+                            {"role": "system", "content": system_prompt("warehouse")},
+                            {
+                                "role": "user",
+                                "content": json.dumps(compact_observation(observation, "warehouse", warehouse_id), separators=(",", ":")),
+                            },
+                        ],
+                        "task_id": task_id,
+                        "seed": seed,
+                        "round_index": observation.round_index,
+                        "warehouse_id": warehouse_id,
+                    }
+                )
             result = env.step(heuristic_joint_policy(observation), grade_terminal=False)
             observation = result.observation
     return rows
@@ -217,7 +260,14 @@ def make_reward_fn(role: str):
                     center_action = CenterAction.model_validate(payload)
                     action = V2JointAction(warehouse_actions=fixed_warehouse_actions(observation), central_action=center_action)
                 elif role == "warehouse":
-                    role_action = V2WarehouseRoleAction.model_validate(payload)
+                    target_warehouse = kwargs.get("warehouse_id", [None] * len(completions))[len(rewards)]
+                    if target_warehouse:
+                        from supplymind_env_v2.models import WarehouseAction
+
+                        warehouse_action = WarehouseAction.model_validate(payload)
+                        role_action = V2WarehouseRoleAction(warehouse_actions={str(target_warehouse): warehouse_action})
+                    else:
+                        role_action = V2WarehouseRoleAction.model_validate(payload)
                     action = V2JointAction(
                         warehouse_actions=role_action.warehouse_actions,
                         central_action=fixed_center_action(observation, role_action.warehouse_actions),
@@ -234,8 +284,12 @@ def make_reward_fn(role: str):
             if role == "center":
                 role_delta = env.agent_rewards["center"] - before.get("center", 0.0)
             elif role == "warehouse":
-                warehouse_ids = [key for key in env.agent_rewards if key != "center"]
-                role_delta = mean(env.agent_rewards[key] - before.get(key, 0.0) for key in warehouse_ids)
+                target_warehouse = kwargs.get("warehouse_id", [None] * len(completions))[len(rewards)]
+                if target_warehouse:
+                    role_delta = env.agent_rewards[str(target_warehouse)] - before.get(str(target_warehouse), 0.0)
+                else:
+                    warehouse_ids = [key for key in env.agent_rewards if key != "center"]
+                    role_delta = mean(env.agent_rewards[key] - before.get(key, 0.0) for key in warehouse_ids)
             else:
                 role_delta = float(result.reward.step_reward)
             scaled = max(-REWARD_CLIP, min(REWARD_CLIP, role_delta / REWARD_SCALE))
@@ -324,7 +378,7 @@ def main() -> None:
     output_dir = args.output_dir or f"outputs/supplymind-{args.role}-qwen-grpo"
     hub_model_id = args.hub_model_id or f"rishavutk/supplymind-{args.role}-qwen-0.5b-grpo"
 
-    rows = build_rows(args.role, args.task_id, seeds)
+    rows = build_warehouse_rows(args.task_id, seeds) if args.role == "warehouse" else build_rows(args.role, args.task_id, seeds)
     dataset = Dataset.from_list(rows)
     log(
         "dataset_ready",

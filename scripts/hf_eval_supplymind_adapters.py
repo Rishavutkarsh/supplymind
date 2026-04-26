@@ -73,7 +73,7 @@ def extract_json(text: str) -> dict[str, Any] | None:
         return None
 
 
-def compact_observation(observation: Any, role: str) -> dict[str, Any]:
+def compact_observation(observation: Any, role: str, warehouse_id: str | None = None) -> dict[str, Any]:
     data = observation.model_dump(mode="json")
     data["scenario_info"].pop("public_rules", None)
     if role == "center":
@@ -86,6 +86,19 @@ def compact_observation(observation: Any, role: str) -> dict[str, Any]:
             "center": data["center"],
             "warehouse_summaries": data["center"].get("warehouse_summaries", []),
             "market_signals": data["center"].get("market_signals", []),
+            "feedback": data.get("feedback", {}),
+        }
+    if warehouse_id:
+        warehouse = data["warehouses"][warehouse_id]
+        return {
+            "role": "warehouse",
+            "warehouse_id": warehouse_id,
+            "round_index": data["round_index"],
+            "remaining_rounds": data["remaining_rounds"],
+            "task_id": data["task_id"],
+            "scenario_info": data["scenario_info"],
+            "warehouse": warehouse,
+            "pending_transfer_proposals": warehouse.get("pending_transfer_proposals", []),
             "feedback": data.get("feedback", {}),
         }
     return {
@@ -107,15 +120,23 @@ def system_prompt(role: str) -> str:
             "Use central_procurements, central_liquidations, central_replenishments, inventory_transfer_proposals, offer_matches."
         )
     return (
-        "You are the shared warehouse policy in SupplyMind. Return only strict JSON with key warehouse_actions mapping warehouse ids to actions. "
-        "Use order_decisions, inventory_offers, inventory_requests, transfer_responses, and local_priority."
+        "You are the shared warehouse policy in SupplyMind. You control exactly one warehouse from the user observation. "
+        "Return only strict JSON matching WarehouseAction with keys order_decisions, inventory_offers, inventory_requests, "
+        "transfer_responses, and local_priority. Only use visible order_id and proposal_id values."
     )
 
 
-def generate_action(model: Any, tokenizer: Any, role: str, observation: Any, max_new_tokens: int) -> tuple[dict[str, Any] | None, str]:
+def generate_action(
+    model: Any,
+    tokenizer: Any,
+    role: str,
+    observation: Any,
+    max_new_tokens: int,
+    warehouse_id: str | None = None,
+) -> tuple[dict[str, Any] | None, str]:
     prompt = [
         {"role": "system", "content": system_prompt(role)},
-        {"role": "user", "content": json.dumps(compact_observation(observation, role), separators=(",", ":"))},
+        {"role": "user", "content": json.dumps(compact_observation(observation, role, warehouse_id), separators=(",", ":"))},
     ]
     text = tokenizer.apply_chat_template(prompt, tokenize=False, add_generation_prompt=True)
     inputs = tokenizer(text, return_tensors="pt").to(model.device)
@@ -148,21 +169,24 @@ def center_action_stats(payload: dict[str, Any] | None) -> dict[str, int]:
 
 def warehouse_action_stats(payload: dict[str, Any] | None) -> dict[str, int]:
     payload = payload or {}
-    warehouses = payload.get("warehouse_actions", {})
-    if not isinstance(warehouses, dict):
-        warehouses = {}
     stats = {
-        "warehouses_controlled": len(warehouses),
+        "warehouses_controlled": 1 if payload else 0,
         "order_decisions": 0,
         "inventory_offers": 0,
         "inventory_requests": 0,
         "transfer_responses": 0,
         "local_priority": 0,
     }
-    for action in warehouses.values():
-        if isinstance(action, dict):
+    if isinstance(payload, dict):
+        if "warehouse_actions" in payload and isinstance(payload.get("warehouse_actions"), dict):
+            stats["warehouses_controlled"] = len(payload["warehouse_actions"])
+            for action in payload["warehouse_actions"].values():
+                if isinstance(action, dict):
+                    for key in ("order_decisions", "inventory_offers", "inventory_requests", "transfer_responses", "local_priority"):
+                        stats[key] += _len_list(action, key)
+        else:
             for key in ("order_decisions", "inventory_offers", "inventory_requests", "transfer_responses", "local_priority"):
-                stats[key] += _len_list(action, key)
+                stats[key] += _len_list(payload, key)
     return stats
 
 
@@ -181,7 +205,7 @@ def load_model(adapter_id: str | None = None) -> tuple[Any, Any]:
 
 def rollout(role: str, model: Any, tokenizer: Any, task_id: str, seed: int, max_new_tokens: int) -> dict[str, Any]:
     from supplymind_env_v2.environment import V2SupplyMindEnv
-    from supplymind_env_v2.models import CenterAction, V2JointAction, V2WarehouseRoleAction
+    from supplymind_env_v2.models import CenterAction, V2JointAction, WarehouseAction
     from supplymind_env_v2.policies import fixed_center_action, fixed_warehouse_actions
 
     env = V2SupplyMindEnv(default_task_id=task_id)
@@ -194,28 +218,41 @@ def rollout(role: str, model: Any, tokenizer: Any, task_id: str, seed: int, max_
     fallback_steps = 0
     samples: list[dict[str, Any]] = []
     while not env.done:
-        payload, generated = generate_action(model, tokenizer, role, observation, max_new_tokens)
-        parsed_before_validation = payload is not None
-        if parsed_before_validation:
-            parsed_payloads += 1
-            action_totals.update(action_stats(role, payload))
         try:
-            if payload is None:
-                raise ValueError("missing_json")
             if role == "center":
+                payload, generated = generate_action(model, tokenizer, role, observation, max_new_tokens)
+                parsed_before_validation = payload is not None
+                if parsed_before_validation:
+                    parsed_payloads += 1
+                    action_totals.update(action_stats(role, payload))
+                if payload is None:
+                    raise ValueError("missing_json")
                 action = V2JointAction(
                     warehouse_actions=fixed_warehouse_actions(observation),
                     central_action=CenterAction.model_validate(payload),
                 )
             else:
-                warehouse_role_action = V2WarehouseRoleAction.model_validate(payload)
-                action = V2JointAction(
-                    warehouse_actions=warehouse_role_action.warehouse_actions,
-                    central_action=fixed_center_action(observation, warehouse_role_action.warehouse_actions),
-                )
+                generated_parts = []
+                warehouse_actions = {}
+                parsed_before_validation = True
+                for warehouse_id in observation.warehouses:
+                    payload, generated = generate_action(model, tokenizer, role, observation, max_new_tokens, warehouse_id)
+                    generated_parts.append(f"{warehouse_id}: {generated}")
+                    if payload is None:
+                        parsed_before_validation = False
+                        raise ValueError("missing_json")
+                    parsed_payloads += 1
+                    action_totals.update(action_stats(role, payload))
+                    warehouse_actions[warehouse_id] = WarehouseAction.model_validate(payload)
+                generated = "\n".join(generated_parts)
+                payload = {"warehouse_actions": {key: value.model_dump(mode="json") for key, value in warehouse_actions.items()}}
+                action = V2JointAction(warehouse_actions=warehouse_actions, central_action=fixed_center_action(observation, warehouse_actions))
         except Exception:
             invalid_payloads += 1
             fallback_steps += 1
+            generated = locals().get("generated", "")
+            payload = locals().get("payload", None)
+            parsed_before_validation = payload is not None
             if role == "center":
                 action = V2JointAction(warehouse_actions=fixed_warehouse_actions(observation), central_action={})
             else:

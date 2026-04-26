@@ -26,7 +26,7 @@ import torch
 from datasets import Dataset
 from huggingface_hub import snapshot_download
 from peft import LoraConfig, get_peft_model
-from transformers import AutoModelForCausalLM, AutoTokenizer, DataCollatorForLanguageModeling, Trainer, TrainingArguments
+from transformers import AutoModelForCausalLM, AutoTokenizer, DataCollatorForSeq2Seq, Trainer, TrainingArguments
 
 
 REPO_ID = "rishavutk/supplymind"
@@ -68,7 +68,7 @@ def prepare_repo() -> Path:
     return local_dir
 
 
-def compact_observation(observation: Any, role: str) -> dict[str, Any]:
+def compact_observation(observation: Any, role: str, warehouse_id: str | None = None) -> dict[str, Any]:
     data = observation.model_dump(mode="json")
     data["scenario_info"].pop("public_rules", None)
     if role == "center":
@@ -81,6 +81,19 @@ def compact_observation(observation: Any, role: str) -> dict[str, Any]:
             "center": data["center"],
             "warehouse_summaries": data["center"].get("warehouse_summaries", []),
             "market_signals": data["center"].get("market_signals", []),
+            "feedback": data.get("feedback", {}),
+        }
+    if warehouse_id:
+        warehouse = data["warehouses"][warehouse_id]
+        return {
+            "role": "warehouse",
+            "warehouse_id": warehouse_id,
+            "round_index": data["round_index"],
+            "remaining_rounds": data["remaining_rounds"],
+            "task_id": data["task_id"],
+            "scenario_info": data["scenario_info"],
+            "warehouse": warehouse,
+            "pending_transfer_proposals": warehouse.get("pending_transfer_proposals", []),
             "feedback": data.get("feedback", {}),
         }
     return {
@@ -105,10 +118,10 @@ def system_prompt(role: str) -> str:
         )
     return (
         "You are the shared warehouse policy in SupplyMind, copied across all warehouses. "
-        "Return only strict JSON with key warehouse_actions mapping warehouse ids to actions. "
-        "Use order_decisions, inventory_offers, inventory_requests, transfer_responses, and local_priority. "
+        "You control exactly one warehouse from the user observation. Return only strict JSON matching WarehouseAction: "
+        "order_decisions, inventory_offers, inventory_requests, transfer_responses, and local_priority. "
         "The center is controlled by a fixed heuristic. Accept orders you can serve, request needed stock, "
-        "and reject bad or impossible commitments."
+        "and reject bad or impossible commitments. Only use order_id and proposal_id values visible in this observation."
     )
 
 
@@ -116,8 +129,26 @@ def action_completion(role: str, joint_action: Any) -> str:
     if role == "center":
         payload = joint_action.central_action.model_dump(mode="json")
     else:
-        payload = {"warehouse_actions": {key: value.model_dump(mode="json") for key, value in joint_action.warehouse_actions.items()}}
+        raise ValueError("warehouse completion needs action_completion_for_warehouse")
     return json.dumps(payload, separators=(",", ":"))
+
+
+def action_completion_for_warehouse(joint_action: Any, warehouse_id: str) -> str:
+    payload = joint_action.warehouse_actions[warehouse_id].model_dump(mode="json")
+    return json.dumps(payload, separators=(",", ":"))
+
+
+def _chat_text(tokenizer: Any, system: str, user: dict[str, Any], assistant: str | None) -> tuple[str, str]:
+    prompt_messages = [
+        {"role": "system", "content": system},
+        {"role": "user", "content": json.dumps(user, separators=(",", ":"))},
+    ]
+    prompt_text = tokenizer.apply_chat_template(prompt_messages, tokenize=False, add_generation_prompt=True)
+    if assistant is None:
+        return prompt_text, prompt_text
+    full_messages = [*prompt_messages, {"role": "assistant", "content": assistant}]
+    full_text = tokenizer.apply_chat_template(full_messages, tokenize=False, add_generation_prompt=False)
+    return prompt_text, full_text
 
 
 def build_rows(role: str, task_id: str, seeds: list[int], tokenizer: Any) -> list[dict[str, str]]:
@@ -130,19 +161,26 @@ def build_rows(role: str, task_id: str, seeds: list[int], tokenizer: Any) -> lis
         observation = env.reset_internal(task_id, seed)
         while not env.done:
             joint_action = heuristic_joint_policy(observation)
-            messages = [
-                {"role": "system", "content": system_prompt(role)},
-                {"role": "user", "content": json.dumps(compact_observation(observation, role), separators=(",", ":"))},
-                {"role": "assistant", "content": action_completion(role, joint_action)},
-            ]
-            rows.append(
-                {
-                    "text": tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=False),
-                    "task_id": task_id,
-                    "seed": seed,
-                    "round_index": observation.round_index,
-                }
-            )
+            if role == "center":
+                user = compact_observation(observation, role)
+                completion = action_completion(role, joint_action)
+                prompt_text, text = _chat_text(tokenizer, system_prompt(role), user, completion)
+                rows.append({"text": text, "prompt_text": prompt_text, "task_id": task_id, "seed": seed, "round_index": observation.round_index})
+            else:
+                for warehouse_id in observation.warehouses:
+                    user = compact_observation(observation, role, warehouse_id)
+                    completion = action_completion_for_warehouse(joint_action, warehouse_id)
+                    prompt_text, text = _chat_text(tokenizer, system_prompt(role), user, completion)
+                    rows.append(
+                        {
+                            "text": text,
+                            "prompt_text": prompt_text,
+                            "task_id": task_id,
+                            "seed": seed,
+                            "round_index": observation.round_index,
+                            "warehouse_id": warehouse_id,
+                        }
+                    )
             result = env.step(joint_action, grade_terminal=False)
             observation = result.observation
     return rows
@@ -174,7 +212,14 @@ def baseline_probe(role: str, task_id: str, seeds: list[int]) -> None:
 
 def tokenize_dataset(dataset: Dataset, tokenizer: Any, max_length: int) -> Dataset:
     def tokenize(batch: dict[str, list[str]]) -> dict[str, Any]:
-        return tokenizer(batch["text"], truncation=True, max_length=max_length)
+        encoded = tokenizer(batch["text"], truncation=True, max_length=max_length)
+        labels = []
+        for input_ids, prompt_text in zip(encoded["input_ids"], batch["prompt_text"], strict=True):
+            prompt_ids = tokenizer(prompt_text, add_special_tokens=False)["input_ids"]
+            prompt_len = min(len(prompt_ids), len(input_ids))
+            labels.append([-100] * prompt_len + input_ids[prompt_len:])
+        encoded["labels"] = labels
+        return encoded
 
     return dataset.map(tokenize, batched=True, remove_columns=list(dataset.column_names))
 
@@ -243,7 +288,7 @@ def main() -> None:
         model=model,
         args=make_training_args(output_dir, args.max_steps, hub_model_id, args.role),
         train_dataset=tokenized,
-        data_collator=DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm=False),
+        data_collator=DataCollatorForSeq2Seq(tokenizer=tokenizer, model=model, label_pad_token_id=-100),
     )
     log("training_start", role=args.role, max_steps=args.max_steps)
     trainer.train()

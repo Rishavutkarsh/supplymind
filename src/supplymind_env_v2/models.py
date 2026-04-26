@@ -135,6 +135,8 @@ class LocalPriority(BaseModel):
 
 
 class WarehouseAction(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     order_decisions: list[OrderDecision] = Field(default_factory=list)
     inventory_offers: list[InventoryOffer] = Field(default_factory=list)
     inventory_requests: list[InventoryRequest] = Field(default_factory=list)
@@ -176,6 +178,8 @@ class OfferMatch(BaseModel):
 
 
 class CenterAction(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     central_procurements: list[CentralProcurement] = Field(default_factory=list)
     central_liquidations: list[CentralLiquidation] = Field(default_factory=list)
     central_replenishments: list[CentralReplenishment] = Field(default_factory=list)
