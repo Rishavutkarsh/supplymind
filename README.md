@@ -142,14 +142,7 @@ Held-out role-eval results on seeds `131, 149, 163`:
 | center | SFT parent | 0.5327 | 0.5977 | 186.56 | 0 | 22 |
 | center | GRPO child | 0.6469 | 0.7626 | 239.21 | 0 | 0 |
 
-Curated evidence lives in [results/submission/summary.md](results/submission/summary.md).
-
-Key plots:
-
-- [Baseline/SFT/GRPO scores](results/submission/baseline_sft_grpo_scores.png)
-- [Invalid outputs](results/submission/invalids.png)
-- [GRPO reward curve](results/submission/grpo_reward_curve.png)
-- [Joint SFT benchmark](results/submission/joint_sft_benchmark.png)
+Curated text evidence lives in [results/submission/summary.md](results/submission/summary.md). Plots are kept outside the Space package so the Hugging Face submission stays small.
 
 ## Run Locally
 
@@ -217,9 +210,9 @@ src/supplymind_env_v2/        environment, models, rewards, generator, planner
 src/supplymind_env/api.py     FastAPI app mounting V2 routes
 static/v2.html                interactive episode UI
 inference.py                  deterministic benchmark inference path
-scripts/                      training, evaluation, plotting, preflight scripts
+scripts/                      training, evaluation, and preflight scripts
 configs/                      documented reward configuration
-results/submission/           curated judge-facing evidence
+results/submission/           curated judge-facing text evidence
 ```
 
 ## Notes

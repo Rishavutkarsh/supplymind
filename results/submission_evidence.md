@@ -13,12 +13,9 @@ This compact evidence file mirrors the judge-facing README story: baseline behav
 | center | SFT parent | 0.5327 | 0.5977 | 186.56 | 0 | 22 |
 | center | GRPO child | 0.6469 | 0.7626 | 239.21 | 0 | 0 |
 
-## Submission Plots
+## Submission Evidence
 
-- `results/submission/baseline_sft_grpo_scores.png`
-- `results/submission/invalids.png`
-- `results/submission/grpo_reward_curve.png`
-- `results/submission/joint_sft_benchmark.png`
+Plot images are intentionally kept out of the Hugging Face Space package. Use this table as the compact judge-facing evidence.
 
 ## Read
 

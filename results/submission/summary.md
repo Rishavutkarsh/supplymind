@@ -24,9 +24,4 @@ Interpretation:
 - Global welfare is logged for audit, while role reward is used for role-specific training.
 - Joint-world play is supported through the same environment, but the headline evidence uses stable role training.
 
-Plots:
-
-- `baseline_sft_grpo_scores.png`
-- `invalids.png`
-- `grpo_reward_curve.png`
-- `joint_sft_benchmark.png`
+Plot images are intentionally kept out of the Hugging Face Space package. The table above is the compact judge-facing evidence.
