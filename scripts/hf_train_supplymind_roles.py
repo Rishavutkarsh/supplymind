@@ -40,7 +40,7 @@ REWARD_CLIP = 20.0
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--role", choices=["center", "warehouse", "joint"], default="center")
-    parser.add_argument("--task-id", default="train_easy")
+    parser.add_argument("--task-id", default="v2_train_easy")
     parser.add_argument("--seeds", default="101,113,127")
     parser.add_argument("--max-steps", type=int, default=30)
     parser.add_argument("--hub-model-id", default="")

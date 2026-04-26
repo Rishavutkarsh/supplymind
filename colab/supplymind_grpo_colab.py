@@ -39,7 +39,7 @@ from supplymind_env_v2.policies import heuristic_joint_policy, no_op_policy
 MODEL_NAME = "Qwen/Qwen2.5-0.5B-Instruct"
 OUTPUT_DIR = "outputs/supplymind-qwen-grpo-smoke"
 
-TASK_IDS = ["train_easy"]
+TASK_IDS = ["v2_train_easy"]
 SEEDS = [101, 113, 127]
 MAX_STEPS = 20
 REWARD_SCALE = 10.0
@@ -171,9 +171,9 @@ dataset = Dataset.from_list(rows)
 print(dataset)
 print("rows", len(rows), "tasks", TASK_IDS, "seeds", SEEDS)
 
-env = V2SupplyMindEnv(default_task_id="train_easy")
+env = V2SupplyMindEnv(default_task_id="v2_train_easy")
 for policy_name in ("no_op", "heuristic"):
-    summaries = [run_policy("train_easy", seed, policy_name) for seed in SEEDS]
+    summaries = [run_policy("v2_train_easy", seed, policy_name) for seed in SEEDS]
     print(
         policy_name,
         "mean_score",
