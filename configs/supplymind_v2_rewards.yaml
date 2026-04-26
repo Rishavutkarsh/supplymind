@@ -26,6 +26,7 @@ order_rewards:
   silent_expiry_penalty_multiplier: 1.00
 
 center_rewards:
+  network_service_profit_share: 0.20
   liquidation_recovery_multiplier: 0.50
   liquidation_cap_per_round: 4
   transfer_broker_fee_per_unit: 0.30

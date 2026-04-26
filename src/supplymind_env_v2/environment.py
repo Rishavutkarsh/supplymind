@@ -496,7 +496,11 @@ class V2SupplyMindEnv:
             value = order.units * order.customer_value_per_unit
             _add(components, "global_fulfilled_customer_value", value)
             _add(components, "global_warehouse_delivery_cost", -delivery_cost)
-            agent_delta[order.warehouse_id] += value - delivery_cost
+            fulfillment_profit = max(0.0, value - delivery_cost)
+            center_service_bonus = fulfillment_profit * cfg("center_rewards", "network_service_profit_share")
+            agent_delta[order.warehouse_id] += value - delivery_cost - center_service_bonus
+            agent_delta["center"] += center_service_bonus
+            _add(components, "center_network_service_bonus", center_service_bonus)
             center_units = min(order.units, self.center_sourced_inventory[order.warehouse_id].get(order.sku, 0))
             if center_units:
                 margin = center_units * self.center_margin_per_unit[order.warehouse_id].get(order.sku, 0.0)
