@@ -1,8 +1,8 @@
-# SupplyMind V2: Training LLM Agents to Coordinate Under Scarcity
+# SupplyMind: Training LLM Agents to Coordinate Under Scarcity
 
 ## TL;DR
 
-SupplyMind V2 is an OpenEnv environment for training LLM agents to coordinate a regional supply network when inventory is scarce, information is incomplete, and every local decision has delayed consequences.
+SupplyMind is an OpenEnv environment for training LLM agents to coordinate a regional supply network when inventory is scarce, information is incomplete, and every local decision has delayed consequences.
 
 The benchmark asks one question:
 
@@ -21,13 +21,13 @@ SupplyMind is not a grid world, board game, or single-agent inventory toy. It is
 
 The official score is global welfare. The agent wins only by improving the network, not by moving money around inside it.
 
-## The Story
+## The Scenario
 
 Imagine a regional quick-commerce network during a shortage.
 
 North warehouse is running out of insulin packs. West has surplus inventory, but West also has its own safety stock target and does not want to take local risk. The central coordinator can see that North is under pressure, but it cannot see every raw customer order. If the center waits, urgent demand may be missed. If it sends too much stock, another region may be exposed later. If it forces a transfer without fair compensation, the warehouse agents may reject future cooperation.
 
-That is the core of SupplyMind V2.
+That is the core of SupplyMind.
 
 The challenge is not "choose the largest number" or "route one vehicle." The challenge is coordination under scarcity: when to buy, when to hold, when to ship, when to broker a trade, when to respect local safety stock, and when to accept short-term cost to prevent a larger network failure.
 
@@ -50,7 +50,7 @@ The result is a benchmark that is practical enough to understand in one minute, 
 
 ## The World
 
-SupplyMind V2 has two trainable role surfaces.
+SupplyMind has two trainable role surfaces.
 
 ```mermaid
 flowchart LR
@@ -107,13 +107,13 @@ The environment tracks four products as representatives of the kinds of items a 
 
 The point is not that these four SKUs are the whole supply chain. They are a compact test set: perishables, staples, critical medical stock, and higher-value retail goods all create different coordination pressure.
 
-## What Makes SupplyMind V2 Novel
+## What Makes SupplyMind Novel
 
 The strongest claim is not "we simulated a warehouse."
 
 The strongest claim is:
 
-**SupplyMind V2 tests whether LLM agents can learn coordination under misaligned local incentives and incomplete information.**
+**SupplyMind tests whether LLM agents can learn coordination under misaligned local incentives and incomplete information.**
 
 What makes the environment stand out:
 
@@ -129,7 +129,7 @@ This is where SupplyMind should score strongest: the environment is built around
 
 ## Tasks and Difficulty
 
-SupplyMind V2 includes deterministic training and benchmark tiers:
+SupplyMind includes deterministic training and benchmark tiers:
 
 - `train_easy`: 3 warehouses, 12 rounds
 - `train_medium`: 4 warehouses, 18 rounds
@@ -147,7 +147,7 @@ This gives the environment two properties judges care about:
 
 ## Action Space
 
-The V2 joint action controls both center and warehouse behavior.
+The joint action controls both center and warehouse behavior.
 
 Warehouses submit local decisions:
 
@@ -211,7 +211,7 @@ This makes the reward informative without being easy to exploit.
 
 ## Anti-Hacking Checks
 
-SupplyMind V2 includes several reward-integrity defenses:
+SupplyMind includes several reward-integrity defenses:
 
 - invalid payload and invalid action penalties
 - stockout penalties
@@ -226,7 +226,7 @@ That matters because a good OpenEnv submission should not only run. It should te
 
 ## Training Pipeline
 
-V2 exposes three training/evaluation modes:
+SupplyMind exposes three training/evaluation modes:
 
 - `/v2/center/*`: train the center while warehouses are frozen to a deterministic heuristic
 - `/v2/warehouse/*`: train a shared warehouse policy while the center is frozen to a deterministic heuristic
@@ -242,11 +242,11 @@ The training loop has two flavors:
 
 This matters because each role learns against a stable world first, then the final evaluation tests whether those learned behaviors work together.
 
-The repo includes role-specific training scripts, Hugging Face job logs, parsed dashboard artifacts, and policy evaluation scripts.
+The repo includes role-specific training scripts, Hugging Face job logs, parsed evaluation artifacts, and policy evaluation scripts.
 
 ## Evidence
 
-SupplyMind V2 already has reproducible benchmark anchors over nine benchmark episodes:
+SupplyMind already has reproducible benchmark anchors over nine benchmark episodes:
 
 ```text
 policy                 mean_score   mean_reward   episodes
@@ -263,32 +263,40 @@ This scale is useful:
 - `heuristic_joint` proves the environment has meaningful strategy
 - `privileged_reference` is a strong anchor, not a claimed mathematical optimum
 
-The training dashboard also records real role-training runs:
+We trained role policies with an SFT warm-start followed by GRPO. Held-out role evaluation used seeds `131, 149, 163`.
+
+| Role | Policy | Global score | Role score | Raw reward | Invalid payloads | Invalid actions |
+|---|---|---:|---:|---:|---:|---:|
+| warehouse | Base Qwen 0.5B | 0.0001 | 0.0001 | -864.40 | 36 | 0 |
+| warehouse | SFT parent | 0.2343 | 0.2166 | 26.05 | 0 | 69 |
+| warehouse | GRPO child | 0.2801 | 0.2881 | 58.73 | 1 | 58 |
+| center | Base Qwen 0.5B | 0.5172 | 0.6336 | 176.12 | 36 | 0 |
+| center | SFT parent | 0.5327 | 0.5977 | 186.56 | 0 | 22 |
+| center | GRPO child | 0.6469 | 0.7626 | 239.21 | 0 | 0 |
+
+The training evidence is simple:
+
+- **Base behavior was unreliable**: the untrained/base policy often produced invalid or low-quality actions.
+- **SFT made the models usable**: supervised warm-starting taught the action format and basic role behavior.
+- **GRPO improved the promoted role policies**: the center role improved strongly, and the warehouse role showed a smaller but measurable improvement over its SFT parent.
+- **Joint play validates interaction**: after role training, the promoted center and warehouse policies were run together in the shared environment.
+
+In the joint validation rollout, the promoted trained policies achieved:
 
 ```text
-role        steps   reward_batches   invalid_payloads   best_reward
-center      30      4                6                  2.848
-warehouse   30      4                3                  0.932
+global score                 0.4941
+raw global reward            151.91
+center role score            0.7206
+warehouse role score         0.5254
+center reward                 52.59
+average warehouse reward      28.04
 ```
 
-For the warehouse role, the recorded reward moved from `-8.0` to `0.001667` by the final reward batch, with a best observed batch reward of `0.932`. The center role reached a best observed reward of `2.848`.
-
-The learning story is simple:
-
-- **Baseline was bad**: the untrained/base policy often produced invalid or low-quality actions, so the environment exposed stockouts, missed orders, and weak reward.
-- **SFT helped a bit**: supervised formatting teaches the model what valid SupplyMind actions look like, so it becomes less like a random JSON generator and more like an agent that can speak the environment's language.
-- **GRPO improved reward**: reinforcement learning then trains against the actual environment signal, so the model is rewarded for decisions that improve service, reduce missed demand, avoid invalid actions, and manage inventory more intelligently.
-- **Joint play is the final test**: after training role policies with the other side frozen, the full environment lets center and warehouses play together. This is where good coordination should show up as stronger global reward.
-
-The plots we include are designed to make that visible: baseline vs SFT vs GRPO on the same axes where possible, plus base-vs-trained held-out evaluation on identical seeds.
+We use this joint rollout as validation that the trained role policies can interact coherently in the same multi-agent world. The main improvement claim remains the cleaner held-out role-training result above.
 
 The honest claim is:
 
-**SupplyMind V2 has a working training and evaluation pipeline, meaningful reward signal, reproducible baselines, and early evidence that role behavior can be shaped.**
-
-The strongest next step is to extend the run length and show cleaner held-out reward lift on `train_easy` and `train_medium`.
-
-The dedicated end-to-end evidence run writes its base-vs-trained comparison to `results/evidence/warehouse_e2e/`. That folder contains the raw JSON report, a compact markdown summary, and PNG plots for reward during training, invalid payloads, held-out role score, and held-out global reward.
+**SupplyMind has a working training and evaluation pipeline, meaningful reward signal, reproducible baselines, and evidence that role behavior can be shaped with SFT plus GRPO.**
 
 ## Why This Fits The Judging Criteria
 
@@ -309,11 +317,11 @@ The project includes:
 - role-specific training logs
 - reward batches
 - invalid payload tracking
-- dashboard artifacts for train/validation/test visibility
+- parsed artifacts for train/validation/test visibility
 
 The presentation should be honest: the policy is not "solved," but the environment is demonstrably trainable and produces interpretable learning signals.
 
-### Storytelling and Presentation
+### Presentation
 
 The demo should start with a human scenario, not an API.
 
@@ -329,7 +337,7 @@ Then show:
 - one better coordinated decision
 - the reward breakdown explaining why it was better
 
-That turns the environment into a story a non-technical judge can follow.
+That turns the environment into a concrete scenario a non-technical judge can follow.
 
 ### Reward and Training Pipeline
 
@@ -357,7 +365,7 @@ The line judges should remember:
 
 ## Final Position
 
-SupplyMind V2 is ambitious in the way a winning OpenEnv submission should be ambitious.
+SupplyMind is ambitious in the way a winning OpenEnv submission should be ambitious.
 
 It is original, but understandable.
 
@@ -369,4 +377,4 @@ It has baselines, reference anchors, role-specific training surfaces, and early 
 
 Most importantly, it teaches something interesting: coordination under scarcity.
 
-That is the story.
+That is the core claim.
