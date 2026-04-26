@@ -9,10 +9,9 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from supplymind_env_v2.environment import V2SupplyMindEnv
-from supplymind_env_v2.generator import PROFILES
-from supplymind_env_v2.grading import grade_episode
+from supplymind_env_v2.generator import BENCHMARK_PROFILE_IDS, TRAINING_PROFILE_IDS
+from supplymind_env_v2.grading import cached_reference_reward, grade_episode
 from supplymind_env_v2.policies import heuristic_joint_policy, naive_joint_policy, no_op_policy
-from supplymind_env_v2.solver import rollout_reference
 
 
 POLICIES = {
@@ -21,6 +20,7 @@ POLICIES = {
     "heuristic_joint": heuristic_joint_policy,
 }
 SEEDS = (101, 103, 105)
+PROFILE_IDS = BENCHMARK_PROFILE_IDS
 
 
 def run_policy(task_id: str, seed: int, policy) -> dict:
@@ -46,14 +46,14 @@ def main() -> None:
     results = {}
     for policy_name, policy in POLICIES.items():
         rows = []
-        for task_id in PROFILES:
+        for task_id in PROFILE_IDS:
             for seed in SEEDS:
                 rows.append(run_policy(task_id, seed, policy))
         results[policy_name] = rows
     ref_rows = []
-    for task_id in PROFILES:
+    for task_id in PROFILE_IDS:
         for seed in SEEDS:
-            raw = rollout_reference(task_id, seed)
+            raw = cached_reference_reward(task_id, seed)
             task_result = grade_episode(task_id, seed, raw, 0.0, 0.0)
             ref_rows.append({"task_id": task_id, "seed": seed, "raw_reward": raw, "score": task_result.score})
     results["privileged_reference"] = ref_rows
@@ -67,7 +67,19 @@ def main() -> None:
     }
     out = ROOT / "results" / "v2_policy_eval.json"
     out.parent.mkdir(exist_ok=True)
-    out.write_text(json.dumps({"summary": summary, "episodes": results}, indent=2), encoding="utf-8")
+    out.write_text(
+        json.dumps(
+            {
+                "profile_scope": "benchmark",
+                "benchmark_profile_ids": BENCHMARK_PROFILE_IDS,
+                "training_profile_ids": TRAINING_PROFILE_IDS,
+                "summary": summary,
+                "episodes": results,
+            },
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
     print(json.dumps(summary, indent=2))
 
 

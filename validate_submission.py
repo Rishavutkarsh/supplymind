@@ -12,9 +12,9 @@ from fastapi.testclient import TestClient
 sys.path.insert(0, str(Path(__file__).resolve().parent / "src"))
 
 from supplymind_env.api import app
-from supplymind_env.environment import V3SupplyMindEnv
-from supplymind_env.models import V3Action, V3Observation, V3StepResult
-from supplymind_env.task_adapter import PUBLIC_TASK_IDS
+from supplymind_env_v2.environment import V2SupplyMindEnv
+from supplymind_env_v2.generator import BENCHMARK_PROFILE_IDS, PUBLIC_BY_INTERNAL
+from supplymind_env_v2.models import V2JointAction, V2Observation, V2StepResult
 
 
 def check(condition: bool, message: str) -> None:
@@ -28,21 +28,22 @@ def validate_openenv_yaml() -> dict:
     data = yaml.safe_load(path.read_text())
     check(data["name"] == "supplymind-openenv", "openenv.yaml name mismatch")
     task_ids = [task["id"] for task in data["tasks"]]
-    check(tuple(task_ids) == PUBLIC_TASK_IDS, "openenv.yaml tasks do not match public v3 tasks")
+    expected = tuple(PUBLIC_BY_INTERNAL[task_id] for task_id in BENCHMARK_PROFILE_IDS)
+    check(tuple(task_ids) == expected, "openenv.yaml tasks do not match benchmark tasks")
     return data
 
 
 def validate_environment_contract() -> None:
-    env = V3SupplyMindEnv("scarcity_negotiation")
-    observation = env.reset(task_id="cooperative_restock", seed=17031)
-    check(isinstance(observation, V3Observation), "reset() must return V3Observation")
-    check(observation.task_id == "cooperative_restock", "reset() should expose public task id")
+    env = V2SupplyMindEnv("medium")
+    observation = env.reset(task_id="easy", seed=17031)
+    check(isinstance(observation, V2Observation), "reset() must return V2Observation")
+    check(observation.task_id == "easy", "reset() should expose public task id")
 
     state = env.state()
-    check(isinstance(state, V3Observation), "state() must return V3Observation")
+    check(isinstance(state, V2Observation), "state() must return V2Observation")
 
-    step_result = env.step(V3Action())
-    check(isinstance(step_result, V3StepResult), "step() must return V3StepResult")
+    step_result = env.step(V2JointAction())
+    check(isinstance(step_result, V2StepResult), "step() must return V2StepResult")
     check(step_result.reward.cumulative_reward == step_result.reward.cumulative_reward, "reward object should be accessible")
 
 
@@ -99,7 +100,7 @@ def validate_http_api() -> None:
     health = client.get("/health")
     check(health.status_code == 200, "/health must return 200")
 
-    for task_id in PUBLIC_TASK_IDS:
+    for task_id in ("easy", "medium", "hard"):
         reset = client.post("/reset", params={"task_id": task_id, "seed": 12345})
         check(reset.status_code == 200, f"/reset must return 200 for {task_id}")
         reset_body = reset.json()
@@ -110,12 +111,12 @@ def validate_http_api() -> None:
 
     reset = client.post("/reset")
     check(reset.status_code == 200, "/reset without task_id must return 200")
-    check(reset.json()["task_id"] in PUBLIC_TASK_IDS, "/reset without task_id should choose a public task")
+    check(reset.json()["task_id"] in ("easy", "medium", "hard", "train_easy", "train_medium", "train_hard", "cooperative_market", "scarcity_market", "crisis_market"), "/reset without task_id should choose a public task")
 
     state = client.get("/state")
     check(state.status_code == 200, "/state must return 200")
 
-    step = client.post("/step", json={"fulfillments": [], "inventory_transfers": [], "driver_loans": []})
+    step = client.post("/step", json={"warehouse_actions": {}, "central_action": {}})
     check(step.status_code == 200, "/step must return 200")
     step_body = step.json()
     check("observation" in step_body and "reward" in step_body, "/step response shape is invalid")

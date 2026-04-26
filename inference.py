@@ -10,9 +10,9 @@ from openai import OpenAI
 
 sys.path.insert(0, str(Path(__file__).resolve().parent / "src"))
 
-from supplymind_env.environment import V3SupplyMindEnv
-from supplymind_env.models import V3Action, V3Observation
-from supplymind_env.policies import baseline_policy, heuristic_policy
+from supplymind_env_v2.environment import V2SupplyMindEnv
+from supplymind_env_v2.models import V2JointAction, V2Observation
+from supplymind_env_v2.policies import heuristic_joint_policy, no_op_policy
 
 
 API_BASE_URL = os.getenv("API_BASE_URL")
@@ -22,21 +22,18 @@ SUCCESS_SCORE_THRESHOLD = 0.1
 
 ENV_NAME = "supplymind"
 EVALUATION_PUBLIC_SEEDS = {
-    "cooperative_restock": 17031,
-    "scarcity_negotiation": 27031,
-    "crisis_coalition": 37031,
+    "easy": 17031,
+    "medium": 27031,
+    "hard": 37031,
 }
-PolicyFn = Callable[[V3Observation], V3Action]
+PolicyFn = Callable[[V2Observation], V2JointAction]
 SYSTEM_PROMPT = (
-    "You are the central orchestrator in a multi-agent warehouse network. "
-    "Warehouses publish market signals, but their deeper incentives are hidden and must be inferred from behavior. "
-    "You do not see individual customer orders; local warehouse agents handle local fulfillment. "
-    "Return JSON only with optional keys central_procurements, central_replenishments, inventory_transfers, offer_matches, "
-    "priority_policy, defer_orders, and coalition_deals. "
-    "Use central_procurements to buy future depot stock when depot inventory is running low, "
-    "central_replenishments for limited depot-to-warehouse restock, and offer_matches to pair compatible inventory offers and requests; use direct transfers only "
-    "when the compensation is likely to be accepted. Optimize global welfare while respecting local incentives, "
-    "stockouts, delivery cost, fairness, and rejected-trade risk."
+    "You are playing SupplyMind, a multi-agent supply network environment. "
+    "Return strict JSON with top-level keys warehouse_actions and central_action. "
+    "Warehouses can accept or reject visible local orders, publish inventory offers and requests, "
+    "and respond to transfer proposals. The center can procure stock, liquidate depot stock, "
+    "replenish warehouses, propose transfers, and match offers to requests. "
+    "Optimize global welfare while avoiding invalid actions, missed accepted orders, stockouts, waste, and needless transfers."
 )
 
 
@@ -48,7 +45,7 @@ def _format_reward(value: float) -> str:
     return f"{value:.2f}"
 
 
-def _action_str(action: V3Action) -> str:
+def _action_str(action: V2JointAction) -> str:
     return json.dumps(action.model_dump(mode="json"), separators=(",", ":"))
 
 
@@ -85,25 +82,25 @@ def build_client() -> OpenAI:
     return OpenAI(**kwargs)
 
 
-def parse_action(raw_text: str) -> V3Action:
+def parse_action(raw_text: str) -> V2JointAction:
     try:
         payload: dict[str, Any] = json.loads(raw_text)
     except json.JSONDecodeError:
         start = raw_text.find("{")
         end = raw_text.rfind("}")
         if start == -1 or end == -1 or end <= start:
-            return V3Action()
+            return V2JointAction()
         try:
             payload = json.loads(raw_text[start : end + 1])
         except json.JSONDecodeError:
-            return V3Action()
+            return V2JointAction()
     try:
-        return V3Action.model_validate(payload)
+        return V2JointAction.model_validate(payload)
     except Exception:
-        return V3Action()
+        return V2JointAction()
 
 
-def choose_action_with_llm(observation: V3Observation) -> V3Action:
+def choose_action_with_llm(observation: V2Observation) -> V2JointAction:
     client = build_client()
     response = client.chat.completions.create(
         model=MODEL_NAME,
@@ -120,13 +117,13 @@ def choose_action_with_llm(observation: V3Observation) -> V3Action:
     return parse_action(raw_text)
 
 
-def fallback_policy(observation: V3Observation, policy_name: str = "heuristic") -> V3Action:
+def fallback_policy(observation: V2Observation, policy_name: str = "heuristic") -> V2JointAction:
     if policy_name == "baseline":
-        return baseline_policy(observation)
-    return heuristic_policy(observation)
+        return no_op_policy(observation)
+    return heuristic_joint_policy(observation)
 
 
-def choose_action(observation: V3Observation, prefer_llm: bool, fallback_name: str = "heuristic") -> tuple[V3Action, str | None]:
+def choose_action(observation: V2Observation, prefer_llm: bool, fallback_name: str = "heuristic") -> tuple[V2JointAction, str | None]:
     if not prefer_llm or not llm_configured():
         return fallback_policy(observation, fallback_name), None if not prefer_llm else "LLM config missing; using deterministic fallback"
     try:
@@ -136,7 +133,7 @@ def choose_action(observation: V3Observation, prefer_llm: bool, fallback_name: s
 
 
 def run_task(task_id: str, seed: int, prefer_llm: bool = True, fallback_name: str = "heuristic") -> dict[str, Any]:
-    env = V3SupplyMindEnv(default_task_id=task_id)
+    env = V2SupplyMindEnv(default_task_id=task_id)
     observation = env.reset(task_id=task_id, seed=seed)
     rewards: list[float] = []
     step_index = 0
@@ -159,7 +156,7 @@ def run_task(task_id: str, seed: int, prefer_llm: bool = True, fallback_name: st
             _print_step(step_index, action, result.reward.step_reward, done, error)
         success = True
     except Exception as exc:
-        fallback_action = V3Action()
+        fallback_action = V2JointAction()
         _print_step(step_index + 1, fallback_action, 0.0, True, str(exc))
     finally:
         score = None if final_summary is None else float(final_summary["graded_score"])

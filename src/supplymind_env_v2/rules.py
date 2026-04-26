@@ -28,8 +28,10 @@ def public_rules() -> dict[str, Any]:
             "depot_holding": f"{config['center_rewards']['depot_holding_cost_per_unit']} per depot unit per round",
             "warehouse_holding": f"{config['warehouse_rewards']['holding_cost_per_unit']} per warehouse unit per round",
             "terminal_leftover_inventory": f"{config['global_rewards']['terminal_inventory_penalty_multiplier']} * procurement_value_of_remaining_stock",
-            "terminal_fairness": f"{config['global_rewards']['terminal_fairness_weight']} * mean_absolute_deviation(per_warehouse_service_rate)",
-            "spoilage": "fresh_milk above the spoilage threshold is charged at procurement cost in the current MVP",
+            "terminal_visible_pending_orders": f"{config['global_rewards']['terminal_pending_expiry_multiplier']} * order_value for visible pending orders; accepted visible orders use accepted_but_missed",
+            "terminal_fairness": f"min({config['global_rewards']['terminal_fairness_weight']} * mean_absolute_deviation(per_warehouse_service_rate), {config['global_rewards']['terminal_fairness_cap']})",
+            "spoilage": f"fresh_milk expires by age: after {config['global_rewards']['fresh_milk_shelf_life_rounds']} rounds, {config['global_rewards']['fresh_milk_expiry_fraction_per_round']} of remaining units can spoil per round, with disposal cost {config['global_rewards']['fresh_milk_disposal_cost_multiplier']} * procurement_cost",
+            "depot_liquidation": f"center can liquidate up to {config['center_rewards']['liquidation_cap_per_round']} depot units per round at {config['center_rewards']['liquidation_recovery_multiplier']} * procurement_cost",
             "shipment_delivery_transfer": "route-cost based; route costs and route times are visible in state",
         },
         "transfer_costs": {
@@ -52,6 +54,7 @@ def public_rules() -> dict[str, Any]:
                 },
                 "central_action": {
                     "central_procurements": [{"sku": "fresh_milk", "units": 4, "max_unit_cost": 5.0}],
+                    "central_liquidations": [{"sku": "fresh_milk", "units": 2}],
                     "central_replenishments": [{"to_warehouse": "north", "sku": "insulin_pack", "units": 2, "unit_price": 12.0}],
                     "inventory_transfer_proposals": [{"from_warehouse": "west", "to_warehouse": "east", "sku": "rice_bag_5kg", "units": 3, "compensation": 15.0}],
                     "offer_matches": [{"offer_signal_id": "west:offer:rice_bag_5kg", "request_signal_id": "east:request:rice_bag_5kg", "units": 2, "compensation": 12.0}],

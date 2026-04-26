@@ -1,356 +1,367 @@
 {
+  "profile_scope": "benchmark",
+  "benchmark_profile_ids": [
+    "v2_easy",
+    "v2_medium",
+    "v2_hard"
+  ],
+  "training_profile_ids": [
+    "v2_train_easy",
+    "v2_train_medium",
+    "v2_train_hard"
+  ],
   "summary": {
     "no_op": {
       "mean_score": 0.0001,
-      "mean_reward": -1515.786,
+      "mean_reward": -2103.854,
       "episodes": 9
     },
     "naive_joint": {
       "mean_score": 0.05,
-      "mean_reward": 400.778,
+      "mean_reward": -173.873,
       "episodes": 9
     },
     "heuristic_joint": {
-      "mean_score": 0.6478,
-      "mean_reward": 727.125,
+      "mean_score": 0.6932,
+      "mean_reward": 491.863,
       "episodes": 9
     },
     "privileged_reference": {
       "mean_score": 0.95,
-      "mean_reward": 886.808,
+      "mean_reward": 736.672,
       "episodes": 9
     }
   },
   "episodes": {
     "no_op": [
       {
-        "task_id": "v2_cooperative_market",
+        "task_id": "v2_easy",
         "seed": 101,
-        "raw_reward": -1004.2,
+        "raw_reward": -1441.03,
         "score": 0.0001,
-        "center_reward": -251.58,
-        "average_warehouse_reward": -188.155,
-        "baseline_reward": 407.686,
-        "target_reward": 775.296
+        "center_reward": -365.262,
+        "average_warehouse_reward": -358.589,
+        "baseline_reward": -226.714,
+        "target_reward": 574.776
       },
       {
-        "task_id": "v2_cooperative_market",
+        "task_id": "v2_easy",
         "seed": 103,
-        "raw_reward": -745.88,
+        "raw_reward": -1212.86,
         "score": 0.0001,
-        "center_reward": -190.75,
-        "average_warehouse_reward": -138.783,
-        "baseline_reward": 575.599,
-        "target_reward": 648.42
+        "center_reward": -309.71,
+        "average_warehouse_reward": -301.05,
+        "baseline_reward": 104.94,
+        "target_reward": 599.865
       },
       {
-        "task_id": "v2_cooperative_market",
+        "task_id": "v2_easy",
         "seed": 105,
-        "raw_reward": -948.03,
+        "raw_reward": -1403.2,
         "score": 0.0001,
-        "center_reward": -241.67,
-        "average_warehouse_reward": -176.59,
-        "baseline_reward": 462.396,
-        "target_reward": 735.065
+        "center_reward": -354.612,
+        "average_warehouse_reward": -349.529,
+        "baseline_reward": 170.147,
+        "target_reward": 850.235
       },
       {
-        "task_id": "v2_scarcity_market",
+        "task_id": "v2_medium",
         "seed": 101,
-        "raw_reward": -1367.52,
+        "raw_reward": -1833.56,
         "score": 0.0001,
-        "center_reward": -341.0,
-        "average_warehouse_reward": -205.304,
-        "baseline_reward": 360.773,
-        "target_reward": 930.843
+        "center_reward": -461.164,
+        "average_warehouse_reward": -343.099,
+        "baseline_reward": 85.817,
+        "target_reward": 770.707
       },
       {
-        "task_id": "v2_scarcity_market",
+        "task_id": "v2_medium",
         "seed": 103,
-        "raw_reward": -1205.92,
+        "raw_reward": -2116.12,
         "score": 0.0001,
-        "center_reward": -302.96,
-        "average_warehouse_reward": -180.592,
-        "baseline_reward": 371.598,
-        "target_reward": 929.183
+        "center_reward": -532.934,
+        "average_warehouse_reward": -395.796,
+        "baseline_reward": -247.144,
+        "target_reward": 573.007
       },
       {
-        "task_id": "v2_scarcity_market",
+        "task_id": "v2_medium",
         "seed": 105,
-        "raw_reward": -1415.06,
+        "raw_reward": -1612.04,
         "score": 0.0001,
-        "center_reward": -353.34,
-        "average_warehouse_reward": -212.344,
-        "baseline_reward": 364.022,
-        "target_reward": 836.804
+        "center_reward": -406.766,
+        "average_warehouse_reward": -301.318,
+        "baseline_reward": 364.045,
+        "target_reward": 787.033
       },
       {
-        "task_id": "v2_crisis_market",
+        "task_id": "v2_hard",
         "seed": 101,
-        "raw_reward": -2364.43,
+        "raw_reward": -3321.09,
         "score": 0.0001,
-        "center_reward": -573.27,
-        "average_warehouse_reward": -255.88,
-        "baseline_reward": 392.244,
-        "target_reward": 1122.101
+        "center_reward": -819.53,
+        "average_warehouse_reward": -500.312,
+        "baseline_reward": -479.678,
+        "target_reward": 1169.365
       },
       {
-        "task_id": "v2_crisis_market",
+        "task_id": "v2_hard",
         "seed": 103,
-        "raw_reward": -2452.5,
+        "raw_reward": -2586.77,
         "score": 0.0001,
-        "center_reward": -581.92,
-        "average_warehouse_reward": -267.226,
-        "baseline_reward": 532.834,
-        "target_reward": 1183.415
+        "center_reward": -642.098,
+        "average_warehouse_reward": -388.934,
+        "baseline_reward": -181.296,
+        "target_reward": 933.317
       },
       {
-        "task_id": "v2_crisis_market",
+        "task_id": "v2_hard",
         "seed": 105,
-        "raw_reward": -2138.53,
+        "raw_reward": -3408.02,
         "score": 0.0001,
-        "center_reward": -522.97,
-        "average_warehouse_reward": -230.794,
-        "baseline_reward": 139.847,
-        "target_reward": 820.145
+        "center_reward": -847.948,
+        "average_warehouse_reward": -512.014,
+        "baseline_reward": -1154.973,
+        "target_reward": 371.744
       }
     ],
     "naive_joint": [
       {
-        "task_id": "v2_cooperative_market",
+        "task_id": "v2_easy",
         "seed": 101,
-        "raw_reward": 407.686,
+        "raw_reward": -226.714,
         "score": 0.05,
-        "center_reward": -75.12,
-        "average_warehouse_reward": 121.28,
-        "baseline_reward": 407.686,
-        "target_reward": 775.296
+        "center_reward": -198.344,
+        "average_warehouse_reward": -7.949,
+        "baseline_reward": -226.714,
+        "target_reward": 574.776
       },
       {
-        "task_id": "v2_cooperative_market",
+        "task_id": "v2_easy",
         "seed": 103,
-        "raw_reward": 575.599,
+        "raw_reward": 104.94,
         "score": 0.05,
-        "center_reward": -48.36,
-        "average_warehouse_reward": 156.358,
-        "baseline_reward": 575.599,
-        "target_reward": 648.42
+        "center_reward": -134.218,
+        "average_warehouse_reward": 80.256,
+        "baseline_reward": 104.94,
+        "target_reward": 599.865
       },
       {
-        "task_id": "v2_cooperative_market",
+        "task_id": "v2_easy",
         "seed": 105,
-        "raw_reward": 462.396,
+        "raw_reward": 170.147,
         "score": 0.05,
-        "center_reward": -67.48,
-        "average_warehouse_reward": 132.925,
-        "baseline_reward": 462.396,
-        "target_reward": 735.065
+        "center_reward": -148.056,
+        "average_warehouse_reward": 106.812,
+        "baseline_reward": 170.147,
+        "target_reward": 850.235
       },
       {
-        "task_id": "v2_scarcity_market",
+        "task_id": "v2_medium",
         "seed": 101,
-        "raw_reward": 360.773,
+        "raw_reward": 85.817,
         "score": 0.05,
-        "center_reward": -117.38,
-        "average_warehouse_reward": 96.332,
-        "baseline_reward": 360.773,
-        "target_reward": 930.843
+        "center_reward": -198.742,
+        "average_warehouse_reward": 71.373,
+        "baseline_reward": 85.817,
+        "target_reward": 770.707
       },
       {
-        "task_id": "v2_scarcity_market",
+        "task_id": "v2_medium",
         "seed": 103,
-        "raw_reward": 371.598,
+        "raw_reward": -247.144,
         "score": 0.05,
-        "center_reward": -100.97,
-        "average_warehouse_reward": 95.1,
-        "baseline_reward": 371.598,
-        "target_reward": 929.183
+        "center_reward": -260.704,
+        "average_warehouse_reward": 4.546,
+        "baseline_reward": -247.144,
+        "target_reward": 573.007
       },
       {
-        "task_id": "v2_scarcity_market",
+        "task_id": "v2_medium",
         "seed": 105,
-        "raw_reward": 364.022,
+        "raw_reward": 364.045,
         "score": 0.05,
-        "center_reward": -127.36,
-        "average_warehouse_reward": 98.57,
-        "baseline_reward": 364.022,
-        "target_reward": 836.804
+        "center_reward": -143.65,
+        "average_warehouse_reward": 127.747,
+        "baseline_reward": 364.045,
+        "target_reward": 787.033
       },
       {
-        "task_id": "v2_crisis_market",
+        "task_id": "v2_hard",
         "seed": 101,
-        "raw_reward": 392.244,
+        "raw_reward": -479.678,
         "score": 0.05,
-        "center_reward": -201.1,
-        "average_warehouse_reward": 85.124,
-        "baseline_reward": 392.244,
-        "target_reward": 1122.101
+        "center_reward": -399.356,
+        "average_warehouse_reward": -15.753,
+        "baseline_reward": -479.678,
+        "target_reward": 1169.365
       },
       {
-        "task_id": "v2_crisis_market",
+        "task_id": "v2_hard",
         "seed": 103,
-        "raw_reward": 532.834,
+        "raw_reward": -181.296,
         "score": 0.05,
-        "center_reward": -188.33,
-        "average_warehouse_reward": 103.397,
-        "baseline_reward": 532.834,
-        "target_reward": 1183.415
+        "center_reward": -299.222,
+        "average_warehouse_reward": 23.766,
+        "baseline_reward": -181.296,
+        "target_reward": 933.317
       },
       {
-        "task_id": "v2_crisis_market",
+        "task_id": "v2_hard",
         "seed": 105,
-        "raw_reward": 139.847,
+        "raw_reward": -1154.973,
         "score": 0.05,
-        "center_reward": -215.7,
-        "average_warehouse_reward": 51.039,
-        "baseline_reward": 139.847,
-        "target_reward": 820.145
+        "center_reward": -486.37,
+        "average_warehouse_reward": -133.082,
+        "baseline_reward": -1154.973,
+        "target_reward": 371.744
       }
     ],
     "heuristic_joint": [
       {
-        "task_id": "v2_cooperative_market",
+        "task_id": "v2_easy",
         "seed": 101,
-        "raw_reward": 585.872,
-        "score": 0.4862,
-        "center_reward": -158.17,
-        "average_warehouse_reward": 150.107,
-        "baseline_reward": 407.686,
-        "target_reward": 775.296
+        "raw_reward": 339.385,
+        "score": 0.6857,
+        "center_reward": -135.1,
+        "average_warehouse_reward": 118.16,
+        "baseline_reward": -226.714,
+        "target_reward": 574.776
       },
       {
-        "task_id": "v2_cooperative_market",
+        "task_id": "v2_easy",
         "seed": 103,
-        "raw_reward": 629.446,
-        "score": 0.7155,
-        "center_reward": -47.0,
-        "average_warehouse_reward": 159.36,
-        "baseline_reward": 575.599,
-        "target_reward": 648.42
+        "raw_reward": 396.519,
+        "score": 0.5802,
+        "center_reward": -95.508,
+        "average_warehouse_reward": 137.056,
+        "baseline_reward": 104.94,
+        "target_reward": 599.865
       },
       {
-        "task_id": "v2_cooperative_market",
+        "task_id": "v2_easy",
         "seed": 105,
-        "raw_reward": 630.074,
-        "score": 0.6035,
-        "center_reward": -39.25,
-        "average_warehouse_reward": 150.282,
-        "baseline_reward": 462.396,
-        "target_reward": 735.065
+        "raw_reward": 644.648,
+        "score": 0.6779,
+        "center_reward": -95.85,
+        "average_warehouse_reward": 204.797,
+        "baseline_reward": 170.147,
+        "target_reward": 850.235
       },
       {
-        "task_id": "v2_scarcity_market",
+        "task_id": "v2_medium",
         "seed": 101,
-        "raw_reward": 695.476,
-        "score": 0.5784,
-        "center_reward": -201.05,
-        "average_warehouse_reward": 138.442,
-        "baseline_reward": 360.773,
-        "target_reward": 930.843
+        "raw_reward": 651.51,
+        "score": 0.7934,
+        "center_reward": -124.8,
+        "average_warehouse_reward": 151.465,
+        "baseline_reward": 85.817,
+        "target_reward": 770.707
       },
       {
-        "task_id": "v2_scarcity_market",
+        "task_id": "v2_medium",
         "seed": 103,
-        "raw_reward": 582.645,
-        "score": 0.3907,
-        "center_reward": -196.36,
-        "average_warehouse_reward": 112.756,
-        "baseline_reward": 371.598,
-        "target_reward": 929.183
+        "raw_reward": 423.703,
+        "score": 0.7862,
+        "center_reward": -132.44,
+        "average_warehouse_reward": 103.058,
+        "baseline_reward": -247.144,
+        "target_reward": 573.007
       },
       {
-        "task_id": "v2_scarcity_market",
+        "task_id": "v2_medium",
         "seed": 105,
-        "raw_reward": 792.872,
-        "score": 0.8664,
-        "center_reward": -184.03,
-        "average_warehouse_reward": 163.496,
-        "baseline_reward": 364.022,
-        "target_reward": 836.804
+        "raw_reward": 645.135,
+        "score": 0.6481,
+        "center_reward": -144.744,
+        "average_warehouse_reward": 151.546,
+        "baseline_reward": 364.045,
+        "target_reward": 787.033
       },
       {
-        "task_id": "v2_crisis_market",
+        "task_id": "v2_hard",
         "seed": 101,
-        "raw_reward": 980.365,
-        "score": 0.7752,
-        "center_reward": -311.93,
-        "average_warehouse_reward": 132.21,
-        "baseline_reward": 392.244,
-        "target_reward": 1122.101
+        "raw_reward": 643.367,
+        "score": 0.6629,
+        "center_reward": -401.722,
+        "average_warehouse_reward": 123.952,
+        "baseline_reward": -479.678,
+        "target_reward": 1169.365
       },
       {
-        "task_id": "v2_crisis_market",
+        "task_id": "v2_hard",
         "seed": 103,
-        "raw_reward": 945.16,
-        "score": 0.6204,
-        "center_reward": -413.97,
-        "average_warehouse_reward": 144.987,
-        "baseline_reward": 532.834,
-        "target_reward": 1183.415
+        "raw_reward": 342.077,
+        "score": 0.4726,
+        "center_reward": -352.552,
+        "average_warehouse_reward": 72.838,
+        "baseline_reward": -181.296,
+        "target_reward": 933.317
       },
       {
-        "task_id": "v2_crisis_market",
+        "task_id": "v2_hard",
         "seed": 105,
-        "raw_reward": 702.213,
-        "score": 0.794,
-        "center_reward": -291.34,
-        "average_warehouse_reward": 98.446,
-        "baseline_reward": 139.847,
-        "target_reward": 820.145
+        "raw_reward": 340.423,
+        "score": 0.9315,
+        "center_reward": -416.68,
+        "average_warehouse_reward": 65.87,
+        "baseline_reward": -1154.973,
+        "target_reward": 371.744
       }
     ],
     "privileged_reference": [
       {
-        "task_id": "v2_cooperative_market",
+        "task_id": "v2_easy",
         "seed": 101,
-        "raw_reward": 775.2961971830985,
+        "raw_reward": 574.775910364146,
         "score": 0.95
       },
       {
-        "task_id": "v2_cooperative_market",
+        "task_id": "v2_easy",
         "seed": 103,
-        "raw_reward": 648.42,
+        "raw_reward": 599.8646619091245,
         "score": 0.95
       },
       {
-        "task_id": "v2_cooperative_market",
+        "task_id": "v2_easy",
         "seed": 105,
-        "raw_reward": 735.0651351351353,
+        "raw_reward": 850.2352119937609,
         "score": 0.95
       },
       {
-        "task_id": "v2_scarcity_market",
+        "task_id": "v2_medium",
         "seed": 101,
-        "raw_reward": 930.8428426395938,
+        "raw_reward": 770.7070636716226,
         "score": 0.95
       },
       {
-        "task_id": "v2_scarcity_market",
+        "task_id": "v2_medium",
         "seed": 103,
-        "raw_reward": 929.1829875045514,
+        "raw_reward": 573.0071794154977,
         "score": 0.95
       },
       {
-        "task_id": "v2_scarcity_market",
+        "task_id": "v2_medium",
         "seed": 105,
-        "raw_reward": 836.8040918337692,
+        "raw_reward": 787.0333755679667,
         "score": 0.95
       },
       {
-        "task_id": "v2_crisis_market",
+        "task_id": "v2_hard",
         "seed": 101,
-        "raw_reward": 1122.1007027518426,
+        "raw_reward": 1169.3648996930262,
         "score": 0.95
       },
       {
-        "task_id": "v2_crisis_market",
+        "task_id": "v2_hard",
         "seed": 103,
-        "raw_reward": 1183.4150604405463,
+        "raw_reward": 933.3172194805448,
         "score": 0.95
       },
       {
-        "task_id": "v2_crisis_market",
+        "task_id": "v2_hard",
         "seed": 105,
-        "raw_reward": 820.1450608201166,
+        "raw_reward": 371.7443846137884,
         "score": 0.95
       }
     ]

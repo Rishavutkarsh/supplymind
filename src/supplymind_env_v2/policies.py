@@ -64,9 +64,11 @@ def fixed_center_action(observation, warehouse_actions: dict[str, WarehouseActio
     warehouse_actions = warehouse_actions or {}
     center_replenishments = _targeted_replenishments(observation)
     procurements = _targeted_procurements(observation)
+    liquidations = _targeted_liquidations(observation)
     offer_matches = _match_warehouse_signals(warehouse_actions)
     return CenterAction(
         central_procurements=procurements,
+        central_liquidations=liquidations,
         central_replenishments=center_replenishments,
         offer_matches=offer_matches,
     )
@@ -110,6 +112,22 @@ def _targeted_procurements(observation) -> list[dict]:
         procurements.append({"sku": sku, "units": 3, "max_unit_cost": band["procurement_cost"]})
         break
     return procurements
+
+
+def _targeted_liquidations(observation) -> list[dict]:
+    if observation.round_index <= 1:
+        return []
+    fresh = observation.center.depot_inventory.get("fresh_milk", 0)
+    if fresh <= 8:
+        return []
+    visible_milk_pressure = sum(
+        summary["pending_orders"] + summary["accepted_orders"]
+        for summary in observation.center.warehouse_summaries
+        if summary["inventory"].get("fresh_milk", 0) <= 2
+    )
+    if visible_milk_pressure:
+        return []
+    return [{"sku": "fresh_milk", "units": min(4, fresh - 8)}]
 
 
 def _match_warehouse_signals(warehouse_actions: dict[str, WarehouseAction]) -> list[dict]:

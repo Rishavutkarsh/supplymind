@@ -95,13 +95,18 @@ These were chosen to create different operational tradeoffs: perishability, stap
 
 ## Public Tasks
 
-SupplyMind exposes three public tasks:
+SupplyMind V2 exposes short training tiers and longer benchmark tiers:
 
-- `cooperative_restock`: easy, 4 warehouses, 25 rounds
-- `scarcity_negotiation`: medium, 5 warehouses, 30 rounds
-- `crisis_coalition`: hard, 7 warehouses, 40 rounds
+- `train_easy`: 3 warehouses, 12 rounds
+- `train_medium`: 4 warehouses, 18 rounds
+- `train_hard`: 5 warehouses, 24 rounds
+- `easy`: 3 warehouses, 18 rounds
+- `medium`: 4 warehouses, 26 rounds
+- `hard`: 5 warehouses, 34 rounds
 
-Each task is generated deterministically from a seed. The same task and seed recreate the same world.
+Legacy names still work as aliases: `cooperative_market -> easy`, `scarcity_market -> medium`, and `crisis_market -> hard`.
+
+Each task is generated deterministically from a curated seed pool when no seed is provided. Passing an explicit seed recreates the same world. Seeds vary motifs such as stable demand, understock, perishable pressure, regional shifts, transfer-needed cases, premium bursts, and tight-SLA pressure.
 
 ## Episode Loop
 
@@ -109,72 +114,50 @@ Each round works like this:
 
 1. Depot trucks and local drivers return if their trips are complete.
 2. Previously purchased depot inventory arrives if its lead time has elapsed.
-3. Warehouses publish compressed demand reports and market signals.
-4. The central orchestrator submits an action.
-5. Depot procurements buy future central stock.
-6. Depot replenishments consume depot stock and trucks.
-7. Approved offer matches become proposed warehouse transfers.
-8. Warehouses accept or reject transfers based on hidden local incentives.
-9. Local warehouses fulfill their own local customer orders.
-10. Missed or late demand is penalized.
-11. Reward components and diagnostics are returned.
+3. Warehouses observe their own orders and choose accept/reject decisions.
+4. Warehouses publish inventory offers and requests.
+5. The central orchestrator buys depot stock, sells stock to warehouses, and proposes or matches transfers.
+6. Warehouses accept or reject transfer proposals.
+7. Local warehouses fulfill accepted customer orders with local drivers.
+8. Rejections, missed accepted orders, silent expiries, stockouts, waste, cost, and fairness effects are scored.
+9. Reward components and public feedback are returned. Full audit metrics are kept for evaluators and the UI, not normal black-box play.
 
 ## Observation
 
-The central policy receives structured JSON containing:
+The joint V2 policy receives structured JSON containing:
 
-- `central_depot`: depot inventory, available trucks, returning trucks, inbound purchases, shipment cap, procurement cap
-- `warehouses`: inventory, driver availability, route costs, public message
-- `demand_reports`: compressed truthful reports of requested, forecast, missed, and at-risk units
-- `market_signals`: inventory offers and requests
-- `feedback`: reward components, recent events, negotiation trace, local utility diagnostics
-- `scenario_info`: task id, seed, round limits, action brief
+- `center`: depot inventory, depot trucks, inbound procurements, warehouse summaries, price bands, and pending proposals
+- `warehouses`: per-warehouse inventory, drivers, local orders, route costs, safety stock, and pending proposals
+- `feedback`: reward components, recent events, invalid action details, and role rewards
+- `scenario_info`: task id, chosen seed, round limits, caps, and compact public rules
 
-Raw customer orders are intentionally hidden from the central agent.
+Raw customer orders are visible to warehouse agents, but the center only receives summaries in the center observation and role-training endpoint.
 
 ## Action Space
 
-The central orchestrator returns strict JSON:
+The V2 joint action controls both role surfaces:
 
 ```json
 {
-  "central_procurements": [
-    {
-      "sku": "insulin_pack",
-      "units": 3
+  "warehouse_actions": {
+    "north": {
+      "order_decisions": [{"order_id": "o1", "decision": "accept"}],
+      "inventory_offers": [{"sku": "fresh_milk", "units": 2, "ask_price": 6.0}],
+      "inventory_requests": [{"sku": "insulin_pack", "units": 2, "max_price": 12.0}],
+      "transfer_responses": [{"proposal_id": "p1", "decision": "accept"}],
+      "local_priority": [{"sku": "insulin_pack", "priority": 3}]
     }
-  ],
-  "central_replenishments": [
-    {
-      "to_warehouse": "north",
-      "sku": "insulin_pack",
-      "units": 2
-    }
-  ],
-  "inventory_transfers": [
-    {
-      "from_warehouse": "west",
-      "to_warehouse": "north",
-      "sku": "fresh_milk",
-      "units": 3,
-      "compensation": 18.0
-    }
-  ],
-  "offer_matches": [
-    {
-      "offer_signal_id": "west:offer:fresh_milk",
-      "request_signal_id": "north:request:fresh_milk",
-      "units": 2,
-      "compensation": 12.0
-    }
-  ],
-  "priority_policy": [],
-  "defer_orders": [],
-  "coalition_deals": []
+  },
+  "central_action": {
+    "central_procurements": [{"sku": "fresh_milk", "units": 4, "max_unit_cost": 4.0}],
+    "central_replenishments": [{"to_warehouse": "north", "sku": "fresh_milk", "units": 2, "unit_price": 6.0}],
+    "inventory_transfer_proposals": [{"from_warehouse": "west", "to_warehouse": "north", "sku": "rice_bag_5kg", "units": 2, "compensation": 10.0}],
+    "offer_matches": [{"offer_signal_id": "west:offer:rice_bag_5kg", "request_signal_id": "north:request:rice_bag_5kg", "units": 2, "compensation": 10.0}]
+  }
 }
 ```
 
-The most important actions today are `central_procurements`, `central_replenishments`, `inventory_transfers`, and `offer_matches`.
+Role-specific training endpoints are also available: `/v2/center/*` freezes warehouses with a strong heuristic, and `/v2/warehouse/*` freezes the center with a strong heuristic.
 
 ## Reward
 
@@ -183,25 +166,23 @@ The official reward is one scalar global welfare score per step.
 ```text
 step_reward =
   fulfilled_order_value
-+ accepted_trade_bonus
-+ coalition_bonus
-+ central_replenishment_bonus
-+ strategic_procurement_bonus
-+ priority_alignment_bonus
-- delivery_cost
-- central_procurement_cost
-- central_replenishment_cost
++ order_reject_penalties
++ accepted_missed_penalties
++ silent_expiry_penalties
++ center_wholesale_terms
++ warehouse_local_terms
+- procurement_cost
+- center_shipment_cost
 - transfer_cost
 - stockout_penalty
-- late_delivery_penalty
 - holding_cost
-- waste_penalty
-- fairness_penalty
-- rejected_trade_penalty
+- spoilage_cost
+- terminal_leftover_penalty
+- terminal_fairness_penalty
 - invalid_action_penalty
 ```
 
-The code stores negative terms as negative components, then computes:
+Internal payments are tracked for center and warehouse rewards, but the official global reward avoids double-counting them. The center broker fee is a role reward only; global welfare gets no direct transfer bonus. The code stores signed components, then computes:
 
 ```python
 step_reward = sum(reward_components.values())
@@ -341,7 +322,7 @@ Current V2 local smoke evaluation:
 ```text
 no_op:                mean_score 0.0001
 naive_joint:          mean_score 0.0500
-heuristic_joint:      mean_score 0.5539
+heuristic_joint:      mean_score 0.6264
 privileged_reference: mean_score 0.9500
 ```
 
@@ -368,7 +349,7 @@ python inference.py
 Run policy evaluation:
 
 ```bash
-python scripts/evaluate_policies.py
+python scripts/evaluate_v2_policies.py
 ```
 
 Run validation:

@@ -2,11 +2,12 @@ from __future__ import annotations
 
 import secrets
 from copy import deepcopy
+from math import ceil
 from statistics import mean
 from typing import Any
 
 from .config import cfg, load_reward_config, price_band
-from .generator import generate_recipe, to_internal_task_id, to_public_task_id
+from .generator import generate_recipe, sample_seed, to_internal_task_id, to_public_task_id
 from .models import (
     CenterObservation,
     HiddenRecipe,
@@ -30,11 +31,14 @@ class V2SupplyMindEnv:
         self.internal_task_id = to_internal_task_id(default_task_id)
         self.public_seed = 0
         self.internal_seed = 0
+        self.seed_source = "provided"
         self.round_index = 0
         self.inventory: dict[str, dict[str, int]] = {}
+        self.inventory_age: dict[str, dict[str, float]] = {}
         self.center_sourced_inventory: dict[str, dict[str, int]] = {}
         self.center_margin_per_unit: dict[str, dict[str, float]] = {}
         self.central_depot_inventory: dict[str, int] = {}
+        self.central_depot_inventory_age: dict[str, float] = {}
         self.depot_procurements: list[tuple[int, str, int]] = []
         self.depot_trucks_available = 0
         self.depot_truck_returns: list[int] = []
@@ -55,8 +59,9 @@ class V2SupplyMindEnv:
         self.last_episode_summary: dict[str, Any] | None = None
 
     def reset(self, task_id: str | None = None, seed: int | None = None) -> V2Observation:
-        self.public_seed = seed if seed is not None else secrets.randbelow(1_000_000_000)
         self.internal_task_id = to_internal_task_id(task_id or self.default_task_id)
+        self.seed_source = "provided" if seed is not None else "curated_pool"
+        self.public_seed = seed if seed is not None else sample_seed(self.internal_task_id, secrets.randbelow(1_000_000))
         self.task_id = to_public_task_id(self.internal_task_id)
         self.internal_seed = self.public_seed
         self._load_recipe(generate_recipe(self.internal_task_id, self.internal_seed))
@@ -65,6 +70,7 @@ class V2SupplyMindEnv:
     def reset_internal(self, task_id: str, seed: int) -> V2Observation:
         self.public_seed = seed
         self.internal_seed = seed
+        self.seed_source = "provided"
         self.internal_task_id = to_internal_task_id(task_id)
         self.task_id = to_public_task_id(self.internal_task_id)
         self._load_recipe(generate_recipe(self.internal_task_id, self.internal_seed))
@@ -74,6 +80,10 @@ class V2SupplyMindEnv:
         self.recipe = recipe
         self.round_index = 0
         self.inventory = deepcopy(recipe.initial_inventory)
+        self.inventory_age = {
+            warehouse_id: {sku: 0.0 for sku in inventory}
+            for warehouse_id, inventory in self.inventory.items()
+        }
         self.center_sourced_inventory = {
             warehouse_id: {sku: 0 for sku in inventory}
             for warehouse_id, inventory in self.inventory.items()
@@ -83,6 +93,7 @@ class V2SupplyMindEnv:
             for warehouse_id, inventory in self.inventory.items()
         }
         self.central_depot_inventory = dict(recipe.central_depot_inventory)
+        self.central_depot_inventory_age = {sku: 0.0 for sku in self.central_depot_inventory}
         self.depot_procurements = []
         self.depot_trucks_available = recipe.profile.depot_trucks
         self.depot_truck_returns = []
@@ -112,6 +123,7 @@ class V2SupplyMindEnv:
                 label=spec.label,
                 region=spec.region,
                 inventory=dict(self.inventory[spec.warehouse_id]),
+                inventory_age={key: round(value, 2) for key, value in self.inventory_age[spec.warehouse_id].items()},
                 drivers_available=self.drivers_available[spec.warehouse_id],
                 local_orders=[
                     LocalOrderSnapshot(
@@ -148,12 +160,17 @@ class V2SupplyMindEnv:
             scenario_info={
                 "task_id": self.task_id,
                 "seed": self.public_seed,
+                "seed_source": self.seed_source,
                 "warehouse_count": recipe.profile.warehouse_count,
                 "total_rounds": recipe.profile.total_rounds,
                 "depot_replenishment_cap": recipe.profile.depot_replenishment_cap,
                 "depot_procurement_cap": recipe.profile.depot_procurement_cap,
                 "depot_procurement_lead_time": recipe.profile.depot_procurement_lead_time,
                 "transfer_cap": recipe.profile.transfer_cap,
+                "public_forecasts": [
+                    forecast for forecast in recipe.public_forecasts
+                    if forecast["available_round"] <= self.round_index
+                ],
                 "public_rules": compact_public_rules(),
             },
             center=CenterObservation(
@@ -180,14 +197,13 @@ class V2SupplyMindEnv:
                 market_signals=[],
                 pending_transfer_proposals=list(self.pending_transfers.values()),
                 price_bands=load_reward_config()["price_bands"],
+                depot_inventory_age={key: round(value, 2) for key, value in self.central_depot_inventory_age.items()},
             ),
             warehouses=warehouses,
             feedback={
                 "last_step_reward": round(self.last_step_reward, 3),
                 "cumulative_reward": round(self.cumulative_reward, 3),
-                "reward_components": dict(self.last_components),
                 "invalid_action_details": list(self.last_invalid_action_details),
-                "agent_rewards": {key: round(value, 3) for key, value in self.agent_rewards.items()},
                 "events": list(self.last_events),
                 "episode_summary": None if self.last_episode_summary is None else dict(self.last_episode_summary),
             },
@@ -213,6 +229,7 @@ class V2SupplyMindEnv:
         market_signals = self._collect_warehouse_market_actions(action, components, agent_delta, events)
         self._resolve_order_decisions(action, components, agent_delta, events)
         self._resolve_center_procurements(action, components, agent_delta, events)
+        self._resolve_center_liquidations(action, components, agent_delta, events)
         self._resolve_center_replenishments(action, components, agent_delta, events)
         self._resolve_offer_matches(action, market_signals, components, agent_delta, events)
         self._queue_transfer_proposals(action, components, agent_delta, events)
@@ -224,6 +241,7 @@ class V2SupplyMindEnv:
             status in {"fulfilled", "rejected", "expired"} for status in self.order_status.values()
         )
         if will_done:
+            self._apply_terminal_order_cleanup(components, agent_delta, events)
             self._apply_terminal_inventory_penalty(components, agent_delta, events)
             self._apply_terminal_fairness_penalty(components, events)
 
@@ -241,7 +259,6 @@ class V2SupplyMindEnv:
 
         info: dict[str, Any] = {
             "agent_rewards": {key: round(value, 3) for key, value in self.agent_rewards.items()},
-            "reward_components": dict(self.last_components),
             "market_signals": market_signals,
         }
         if self.done and grade_terminal:
@@ -268,7 +285,7 @@ class V2SupplyMindEnv:
 
         return V2StepResult(
             observation=self.state(),
-            reward=V2Reward(step_reward=round(step_reward, 3), cumulative_reward=round(self.cumulative_reward, 3), components=dict(self.last_components)),
+            reward=V2Reward(step_reward=round(step_reward, 3), cumulative_reward=round(self.cumulative_reward, 3), components={}),
             done=self.done,
             info=info,
         )
@@ -295,8 +312,9 @@ class V2SupplyMindEnv:
                 source = specs_by_id[proposal.from_warehouse]
                 target = specs_by_id[proposal.to_warehouse]
                 transfer_cost = source.route_costs[target.region] * proposal.units * 0.8
-                self.inventory[proposal.from_warehouse][proposal.sku] -= proposal.units
-                self.inventory[proposal.to_warehouse][proposal.sku] += proposal.units
+                moved_age = self.inventory_age[proposal.from_warehouse].get(proposal.sku, 0.0)
+                self._remove_warehouse_stock(proposal.from_warehouse, proposal.sku, proposal.units)
+                self._add_warehouse_stock(proposal.to_warehouse, proposal.sku, proposal.units, moved_age)
                 broker_fee = _broker_fee(proposal.units, proposal.compensation)
                 _add(components, "global_transfer_cost", -transfer_cost)
                 _add(components, "center_transfer_broker_fee", broker_fee)
@@ -358,6 +376,29 @@ class V2SupplyMindEnv:
             agent_delta["center"] -= cost
             events.append(f"center procured {procurement.units} {procurement.sku}, arrival round {arrival}")
 
+    def _resolve_center_liquidations(self, action: V2JointAction, components: dict[str, float], agent_delta: dict[str, float], events: list[str]) -> None:
+        used_units = 0
+        cap = int(cfg("center_rewards", "liquidation_cap_per_round"))
+        recovery_multiplier = cfg("center_rewards", "liquidation_recovery_multiplier")
+        for liquidation in action.central_action.central_liquidations:
+            if liquidation.units <= 0 or used_units + liquidation.units > cap:
+                reason = "invalid_units" if liquidation.units <= 0 else "liquidation_cap_exceeded"
+                self._invalid(components, "central_liquidation", reason, -3.0, {"sku": liquidation.sku, "units": liquidation.units})
+                agent_delta["center"] -= 1.0
+                continue
+            available = self.central_depot_inventory.get(liquidation.sku, 0)
+            if liquidation.units > available:
+                self._invalid(components, "central_liquidation", "insufficient_depot_stock", -3.0, {"sku": liquidation.sku, "units": liquidation.units, "available": available})
+                agent_delta["center"] -= 1.0
+                continue
+            recovery = liquidation.units * price_band(liquidation.sku)["procurement_cost"] * recovery_multiplier
+            self._remove_depot_stock(liquidation.sku, liquidation.units)
+            used_units += liquidation.units
+            _add(components, "global_liquidation_recovery", recovery)
+            _add(components, "center_liquidation_recovery", recovery)
+            agent_delta["center"] += recovery
+            events.append(f"center liquidated {liquidation.units} {liquidation.sku} at markdown recovery")
+
     def _resolve_center_replenishments(self, action: V2JointAction, components: dict[str, float], agent_delta: dict[str, float], events: list[str]) -> None:
         recipe = self._require_recipe()
         specs_by_id = {spec.warehouse_id: spec for spec in recipe.warehouse_specs}
@@ -378,8 +419,9 @@ class V2SupplyMindEnv:
                 continue
             spec = specs_by_id[shipment.to_warehouse]
             shipment_cost = (1.2 + spec.route_costs[spec.region]) * shipment.units
-            self.central_depot_inventory[shipment.sku] -= shipment.units
-            self.inventory[shipment.to_warehouse][shipment.sku] += shipment.units
+            moved_age = self.central_depot_inventory_age.get(shipment.sku, 0.0)
+            self._remove_depot_stock(shipment.sku, shipment.units)
+            self._add_warehouse_stock(shipment.to_warehouse, shipment.sku, shipment.units, moved_age)
             self.center_sourced_inventory[shipment.to_warehouse][shipment.sku] += shipment.units
             self.center_margin_per_unit[shipment.to_warehouse][shipment.sku] = shipment.unit_price - band["procurement_cost"]
             self.depot_trucks_available -= 1
@@ -404,8 +446,9 @@ class V2SupplyMindEnv:
             if units <= 0 or self.inventory[offer["warehouse_id"]].get(offer["sku"], 0) < units:
                 self._invalid(components, "offer_match", "invalid_units_or_offer_stock", -3.0, {"offer_signal_id": match.offer_signal_id, "request_signal_id": match.request_signal_id, "units": match.units})
                 continue
-            self.inventory[offer["warehouse_id"]][offer["sku"]] -= units
-            self.inventory[request["warehouse_id"]][request["sku"]] += units
+            moved_age = self.inventory_age[offer["warehouse_id"]].get(offer["sku"], 0.0)
+            self._remove_warehouse_stock(offer["warehouse_id"], offer["sku"], units)
+            self._add_warehouse_stock(request["warehouse_id"], request["sku"], units, moved_age)
             compensation = max(match.compensation, offer["price"] * units)
             broker_fee = _broker_fee(units, compensation)
             _add(components, "global_transfer_cost", -0.5 * units)
@@ -446,7 +489,7 @@ class V2SupplyMindEnv:
             if self.inventory[order.warehouse_id].get(order.sku, 0) < order.units or self.drivers_available[order.warehouse_id] <= 0:
                 continue
             delivery_cost = spec.route_costs[spec.region] * order.units
-            self.inventory[order.warehouse_id][order.sku] -= order.units
+            self._remove_warehouse_stock(order.warehouse_id, order.sku, order.units)
             self.drivers_available[order.warehouse_id] -= 1
             self.driver_returns[order.warehouse_id].append(self.round_index + spec.route_times[spec.region])
             self.order_status[order.order_id] = "fulfilled"
@@ -477,15 +520,45 @@ class V2SupplyMindEnv:
             agent_delta["center"] -= penalty * cfg("center_rewards", "network_stockout_share")
             events.append(f"{order.order_id} expired after {status}")
 
+    def _apply_terminal_order_cleanup(self, components: dict[str, float], agent_delta: dict[str, float], events: list[str]) -> None:
+        accepted_count = 0
+        pending_count = 0
+        total_penalty = 0.0
+        for order in self._visible_orders():
+            status = self.order_status[order.order_id]
+            if status not in {"pending", "accepted"}:
+                continue
+            multiplier = (
+                cfg("order_rewards", "accepted_missed_penalty_multiplier")
+                if status == "accepted"
+                else cfg("global_rewards", "terminal_pending_expiry_multiplier")
+            )
+            penalty = order.units * order.customer_value_per_unit * multiplier
+            self.order_status[order.order_id] = "expired"
+            _add(components, "global_terminal_order_penalty", -penalty)
+            agent_delta[order.warehouse_id] -= penalty * cfg("warehouse_rewards", "local_stockout_share")
+            agent_delta["center"] -= penalty * cfg("center_rewards", "network_stockout_share")
+            total_penalty += penalty
+            if status == "accepted":
+                accepted_count += 1
+            else:
+                pending_count += 1
+        if total_penalty:
+            events.append(f"terminal closed {accepted_count} accepted and {pending_count} pending visible orders")
+
     def _apply_holding_and_spoilage(self, components: dict[str, float], agent_delta: dict[str, float], events: list[str]) -> None:
         center_holding = sum(self.central_depot_inventory.values()) * cfg("center_rewards", "depot_holding_cost_per_unit")
         _add(components, "global_holding_cost", -center_holding)
         agent_delta["center"] -= center_holding
+        shelf_life = int(cfg("global_rewards", "fresh_milk_shelf_life_rounds"))
+        expiry_fraction = cfg("global_rewards", "fresh_milk_expiry_fraction_per_round")
+        disposal_multiplier = cfg("global_rewards", "fresh_milk_disposal_cost_multiplier")
+        self._age_fresh_milk()
         for sku, units in list(self.central_depot_inventory.items()):
-            if sku == "fresh_milk" and units > 8:
-                spoiled = units - 8
-                penalty = spoiled * price_band(sku)["procurement_cost"]
-                self.central_depot_inventory[sku] -= spoiled
+            if sku == "fresh_milk" and units > 0 and self.central_depot_inventory_age.get(sku, 0.0) > shelf_life:
+                spoiled = min(units, max(1, ceil(units * expiry_fraction)))
+                penalty = spoiled * price_band(sku)["procurement_cost"] * disposal_multiplier
+                self._remove_depot_stock(sku, spoiled)
                 _add(components, "global_spoilage_cost", -penalty)
                 agent_delta["center"] -= penalty * cfg("center_rewards", "depot_spoilage_share")
                 events.append(f"depot spoiled {spoiled} {sku}")
@@ -494,10 +567,10 @@ class V2SupplyMindEnv:
             _add(components, "global_holding_cost", -holding)
             agent_delta[warehouse_id] -= holding
             fresh = inventory.get("fresh_milk", 0)
-            if fresh > 8:
-                spoiled = fresh - 8
-                penalty = spoiled * price_band("fresh_milk")["procurement_cost"]
-                inventory["fresh_milk"] -= spoiled
+            if fresh > 0 and self.inventory_age[warehouse_id].get("fresh_milk", 0.0) > shelf_life:
+                spoiled = min(fresh, max(1, ceil(fresh * expiry_fraction)))
+                penalty = spoiled * price_band("fresh_milk")["procurement_cost"] * disposal_multiplier
+                self._remove_warehouse_stock(warehouse_id, "fresh_milk", spoiled)
                 _add(components, "global_spoilage_cost", -penalty)
                 agent_delta[warehouse_id] -= penalty * cfg("warehouse_rewards", "warehouse_spoilage_share")
                 agent_delta["center"] -= penalty * cfg("center_rewards", "warehouse_spoilage_share")
@@ -534,7 +607,7 @@ class V2SupplyMindEnv:
             return
         avg_rate = mean(service_rates.values())
         mad = mean(abs(rate - avg_rate) for rate in service_rates.values())
-        penalty = cfg("global_rewards", "terminal_fairness_weight") * mad
+        penalty = min(cfg("global_rewards", "terminal_fairness_weight") * mad, cfg("global_rewards", "terminal_fairness_cap"))
         if penalty:
             _add(components, "global_fairness_penalty", -penalty)
             _add(components, "audit_fairness_penalty", penalty)
@@ -561,8 +634,10 @@ class V2SupplyMindEnv:
             "audit_successful_transfer_units": "successful_transfer_units",
             "global_transfer_cost": "transfer_cost",
             "center_transfer_broker_fee": "center_broker_fee",
+            "global_liquidation_recovery": "liquidation_recovery",
             "global_fulfilled_customer_value": "fulfilled_customer_value",
             "global_stockout_penalty": "stockout_penalty",
+            "global_terminal_order_penalty": "terminal_order_penalty",
             "global_holding_cost": "holding_cost",
             "global_spoilage_cost": "spoilage_cost",
             "global_terminal_inventory_penalty": "terminal_leftover_penalty",
@@ -584,8 +659,10 @@ class V2SupplyMindEnv:
             "rejected_transfer_count": 0,
             "transfer_cost": 0.0,
             "center_broker_fee": 0.0,
+            "liquidation_recovery": 0.0,
             "fulfilled_customer_value": 0.0,
             "stockout_penalty": 0.0,
+            "terminal_order_penalty": 0.0,
             "holding_cost": 0.0,
             "spoilage_cost": 0.0,
             "terminal_leftover_penalty": 0.0,
@@ -626,6 +703,39 @@ class V2SupplyMindEnv:
             }
         )
 
+    def _add_depot_stock(self, sku: str, units: int, age: float = 0.0) -> None:
+        current_units = self.central_depot_inventory.get(sku, 0)
+        if sku == "fresh_milk" and units > 0:
+            current_age = self.central_depot_inventory_age.get(sku, 0.0)
+            total_units = current_units + units
+            self.central_depot_inventory_age[sku] = ((current_units * current_age) + (units * age)) / total_units
+        self.central_depot_inventory[sku] = current_units + units
+
+    def _remove_depot_stock(self, sku: str, units: int) -> None:
+        self.central_depot_inventory[sku] = max(0, self.central_depot_inventory.get(sku, 0) - units)
+        if self.central_depot_inventory[sku] == 0:
+            self.central_depot_inventory_age[sku] = 0.0
+
+    def _add_warehouse_stock(self, warehouse_id: str, sku: str, units: int, age: float = 0.0) -> None:
+        current_units = self.inventory[warehouse_id].get(sku, 0)
+        if sku == "fresh_milk" and units > 0:
+            current_age = self.inventory_age[warehouse_id].get(sku, 0.0)
+            total_units = current_units + units
+            self.inventory_age[warehouse_id][sku] = ((current_units * current_age) + (units * age)) / total_units
+        self.inventory[warehouse_id][sku] = current_units + units
+
+    def _remove_warehouse_stock(self, warehouse_id: str, sku: str, units: int) -> None:
+        self.inventory[warehouse_id][sku] = max(0, self.inventory[warehouse_id].get(sku, 0) - units)
+        if self.inventory[warehouse_id][sku] == 0:
+            self.inventory_age[warehouse_id][sku] = 0.0
+
+    def _age_fresh_milk(self) -> None:
+        if self.central_depot_inventory.get("fresh_milk", 0) > 0:
+            self.central_depot_inventory_age["fresh_milk"] = self.central_depot_inventory_age.get("fresh_milk", 0.0) + 1.0
+        for warehouse_id, inventory in self.inventory.items():
+            if inventory.get("fresh_milk", 0) > 0:
+                self.inventory_age[warehouse_id]["fresh_milk"] = self.inventory_age[warehouse_id].get("fresh_milk", 0.0) + 1.0
+
     def _shipment_invalid_reason(self, shipment: Any, used_units: int, cap: int, band: dict[str, float]) -> str:
         if shipment.to_warehouse not in self.inventory:
             return "unknown_destination_warehouse"
@@ -643,7 +753,7 @@ class V2SupplyMindEnv:
 
     def _receive_returns(self) -> None:
         for arrival, sku, units in [item for item in self.depot_procurements if item[0] <= self.round_index]:
-            self.central_depot_inventory[sku] = self.central_depot_inventory.get(sku, 0) + units
+            self._add_depot_stock(sku, units, 0.0)
         self.depot_procurements = [item for item in self.depot_procurements if item[0] > self.round_index]
         returned = [round_index for round_index in self.depot_truck_returns if round_index <= self.round_index]
         if returned:

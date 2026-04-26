@@ -57,6 +57,7 @@ class HiddenRecipe(BaseModel):
     initial_drivers: dict[str, int]
     central_depot_inventory: dict[SKU, int]
     orders: tuple[OrderTemplate, ...]
+    public_forecasts: tuple[dict[str, Any], ...] = Field(default_factory=tuple)
 
 
 class LocalOrderSnapshot(BaseModel):
@@ -83,6 +84,7 @@ class WarehouseObservation(BaseModel):
     label: str
     region: str
     inventory: dict[SKU, int]
+    inventory_age: dict[SKU, float] = Field(default_factory=dict)
     drivers_available: int
     local_orders: list[LocalOrderSnapshot]
     order_action_context: list[dict[str, Any]] = Field(default_factory=list)
@@ -96,6 +98,7 @@ class CenterObservation(BaseModel):
     round_index: int
     remaining_rounds: int
     depot_inventory: dict[SKU, int]
+    depot_inventory_age: dict[SKU, float] = Field(default_factory=dict)
     depot_trucks_available: int
     inbound_procurements: list[dict[str, int | str]] = Field(default_factory=list)
     warehouse_summaries: list[dict[str, Any]] = Field(default_factory=list)
@@ -145,6 +148,11 @@ class CentralProcurement(BaseModel):
     max_unit_cost: float
 
 
+class CentralLiquidation(BaseModel):
+    sku: SKU
+    units: int
+
+
 class CentralReplenishment(BaseModel):
     to_warehouse: str
     sku: SKU
@@ -169,6 +177,7 @@ class OfferMatch(BaseModel):
 
 class CenterAction(BaseModel):
     central_procurements: list[CentralProcurement] = Field(default_factory=list)
+    central_liquidations: list[CentralLiquidation] = Field(default_factory=list)
     central_replenishments: list[CentralReplenishment] = Field(default_factory=list)
     inventory_transfer_proposals: list[InventoryTransferProposal] = Field(default_factory=list)
     offer_matches: list[OfferMatch] = Field(default_factory=list)

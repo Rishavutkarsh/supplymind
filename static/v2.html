@@ -46,11 +46,14 @@
     <h1>SupplyMind V2 Multi-Agent</h1>
     <div class="controls">
       <select id="task">
-        <option value="cooperative_market">cooperative_market</option>
-        <option value="scarcity_market" selected>scarcity_market</option>
-        <option value="crisis_market">crisis_market</option>
+        <option value="train_easy">train_easy</option>
+        <option value="train_medium">train_medium</option>
+        <option value="train_hard">train_hard</option>
+        <option value="easy">easy</option>
+        <option value="medium" selected>medium</option>
+        <option value="hard">hard</option>
       </select>
-      <input id="seed" type="number" value="101" />
+      <input id="seed" type="number" placeholder="optional seed" />
       <button id="reset">Reset</button>
       <button id="heuristic" class="secondary">Load Joint Heuristic</button>
       <button id="step">Step</button>
@@ -72,11 +75,14 @@
     </aside>
   </main>
   <script>
-    let state = null, episode = [], running = false;
+    let state = null, lastInfo = {}, episode = [], running = false;
     const $ = id => document.getElementById(id);
     async function reset() {
-      const res = await fetch(`/v2/reset?task_id=${$("task").value}&seed=${$("seed").value}`, { method:"POST" });
+      const seed = $("seed").value.trim();
+      const url = `/v2/reset?task_id=${$("task").value}${seed ? `&seed=${seed}` : ""}`;
+      const res = await fetch(url, { method:"POST" });
       state = await res.json();
+      lastInfo = {};
       episode = [{ round:state.round_index, reward:0, cumulative:0, action:{}, events:["episode reset"], components:{} }];
       await loadHeuristic();
       render();
@@ -92,7 +98,8 @@
       const res = await fetch("/v2/step", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(payload) });
       const data = await res.json();
       state = data.observation;
-      episode.push({ round:before, reward:data.reward.step_reward, cumulative:data.reward.cumulative_reward, action:payload, events:state.feedback.events || [], components:data.reward.components, done:data.done, summary:data.info.episode_summary });
+      lastInfo = data.info || {};
+      episode.push({ round:before, reward:data.reward.step_reward, cumulative:data.reward.cumulative_reward, action:payload, events:state.feedback.events || [], components:lastInfo.reward_components || data.reward.components || {}, done:data.done, summary:lastInfo.episode_summary });
       render();
       if (!data.done) await loadHeuristic();
       return data.done;
@@ -105,7 +112,7 @@
     }
     function render() {
       if (!state) return;
-      const rewards = state.feedback.agent_rewards || {};
+      const rewards = latestAgentRewards();
       $("metrics").innerHTML = `
         <div class="metric"><span class="muted">Round</span><strong>${state.round_index}</strong></div>
         <div class="metric"><span class="muted">Global</span><strong>${Number(state.feedback.cumulative_reward||0).toFixed(2)}</strong></div>
@@ -113,13 +120,14 @@
         <div class="metric"><span class="muted">Avg Warehouse</span><strong>${avgWarehouse(rewards).toFixed(2)}</strong></div>`;
       $("center").innerHTML = `<div class="card"><h2>Depot <span class="badge">${state.center.depot_trucks_available} truck(s)</span></h2>${bars(state.center.depot_inventory)}<p class="muted">Inbound: ${(state.center.inbound_procurements||[]).map(x=>`${x.units} ${x.sku}@${x.arrival_round}`).join(", ") || "none"}</p></div>`;
       $("warehouses").innerHTML = Object.values(state.warehouses).map(w => `<div class="card"><h2>${w.label} <span class="badge">${w.region}</span></h2>${bars(w.inventory)}<p class="muted">drivers ${w.drivers_available}; orders ${w.local_orders.length}; proposals ${w.pending_transfer_proposals.length}</p><p class="muted">reward ${Number(rewards[w.warehouse_id]||0).toFixed(2)}</p></div>`).join("");
-      $("components").textContent = JSON.stringify(state.feedback.reward_components || {}, null, 2);
+      $("components").textContent = JSON.stringify(episode[episode.length - 1]?.components || {}, null, 2);
       $("events").textContent = JSON.stringify(state.feedback.events || [], null, 2);
-      $("timeline").innerHTML = episode.slice().reverse().map(item => `<div class="timeline-item"><h3>Round ${item.round}<span class="${item.reward>=0?'pos':'neg'}">${Number(item.reward).toFixed(2)}</span></h3><div class="muted">cumulative ${Number(item.cumulative).toFixed(2)}${item.done ? " · done" : ""}</div><div class="chips">${chips(item.action)}</div><ul>${(item.events||[]).slice(0,5).map(e=>`<li class="muted">${e}</li>`).join("")}</ul>${item.summary ? `<pre>${JSON.stringify(item.summary,null,2)}</pre>` : ""}</div>`).join("");
+      $("timeline").innerHTML = episode.slice().reverse().map(item => `<div class="timeline-item"><h3>Round ${item.round}<span class="${item.reward>=0?'pos':'neg'}">${Number(item.reward).toFixed(2)}</span></h3><div class="muted">cumulative ${Number(item.cumulative).toFixed(2)}${item.done ? " - done" : ""}</div><div class="chips">${chips(item.action)}</div><ul>${(item.events||[]).slice(0,5).map(e=>`<li class="muted">${e}</li>`).join("")}</ul>${item.summary ? `<pre>${JSON.stringify(item.summary,null,2)}</pre>` : ""}</div>`).join("");
     }
     function bars(inv){ return `<div class="bars">${Object.entries(inv||{}).map(([k,v])=>`<div class="barrow"><span>${k}</span><div class="bar"><span style="width:${Math.min(100,v*10)}%"></span></div><span>${v}</span></div>`).join("")}</div>`; }
     function avgWarehouse(rewards){ const vals = Object.entries(rewards||{}).filter(([k])=>k!=="center").map(([,v])=>Number(v)); return vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : 0; }
-    function chips(action){ const c=action?.central_action||{}, w=action?.warehouse_actions||{}; return [`wh ${Object.keys(w).length}`,`buy ${(c.central_procurements||[]).length}`,`ship ${(c.central_replenishments||[]).length}`,`prop ${(c.inventory_transfer_proposals||[]).length}`,`match ${(c.offer_matches||[]).length}`].map(x=>`<span class="chip">${x}</span>`).join(""); }
+    function latestAgentRewards(){ return lastInfo.agent_rewards || {}; }
+    function chips(action){ const c=action?.central_action||{}, w=action?.warehouse_actions||{}; return [`wh ${Object.keys(w).length}`,`buy ${(c.central_procurements||[]).length}`,`liq ${(c.central_liquidations||[]).length}`,`ship ${(c.central_replenishments||[]).length}`,`prop ${(c.inventory_transfer_proposals||[]).length}`,`match ${(c.offer_matches||[]).length}`].map(x=>`<span class="chip">${x}</span>`).join(""); }
     $("reset").onclick = reset; $("heuristic").onclick = loadHeuristic; $("step").onclick = step; $("run").onclick = runEpisode; reset();
   </script>
 </body>

@@ -1,3 +1,4 @@
+.git/
 __pycache__/
 *.pyc
 *.pyo
@@ -5,6 +6,8 @@ __pycache__/
 .pytest_cache/
 .venv/
 *.log
+server.err.log
+server.out.log
 results/*.json
-!results/v2_policy_eval.json
+results/*.tmp
 outputs/

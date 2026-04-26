@@ -5,20 +5,20 @@ description: >
   local incentives, customer orders, delivery drivers, transfer friction,
   and bounded sequential planning.
 entrypoints:
-  python_api: src/supplymind_env/environment.py
+  python_api: src/supplymind_env_v2/environment.py
   inference: inference.py
   http_api: src/supplymind_env/api.py
   preflight: validate_submission.py
 models:
-  observation: supplymind_env.models.V3Observation
-  action: supplymind_env.models.V3Action
-  reward: supplymind_env.models.V3Reward
+  observation: supplymind_env_v2.models.V2Observation
+  action: supplymind_env_v2.models.V2JointAction
+  reward: supplymind_env_v2.models.V2Reward
 tasks:
-  - id: cooperative_restock
+  - id: easy
     difficulty: easy
-  - id: scarcity_negotiation
+  - id: medium
     difficulty: medium
-  - id: crisis_coalition
+  - id: hard
     difficulty: hard
 validation:
   required_methods:

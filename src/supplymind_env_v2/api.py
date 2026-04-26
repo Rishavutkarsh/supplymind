@@ -1,13 +1,19 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Body, HTTPException
 from fastapi.responses import HTMLResponse
+from pydantic import BaseModel
 
 from .environment import V2SupplyMindEnv
 from .generator import PUBLIC_TASK_IDS
 from .models import CenterAction, V2JointAction, V2WarehouseRoleAction
 from .policies import fixed_center_action, fixed_warehouse_actions, heuristic_joint_policy
 from .rules import public_rules
+
+
+class ResetRequest(BaseModel):
+    task_id: str | None = None
+    seed: int | None = None
 
 
 def create_v2_router() -> APIRouter:
@@ -17,10 +23,11 @@ def create_v2_router() -> APIRouter:
     warehouse_env = V2SupplyMindEnv()
 
     @router.post("/reset")
-    def reset(task_id: str | None = None, seed: int | None = None) -> dict:
-        if task_id is not None and task_id not in PUBLIC_TASK_IDS and not task_id.startswith("v2_"):
-            raise HTTPException(status_code=400, detail=f"Unknown v2 task_id '{task_id}'. Expected one of: {', '.join(PUBLIC_TASK_IDS)}")
-        return env.reset(task_id=task_id, seed=seed).model_dump(mode="json")
+    def reset(payload: ResetRequest | None = Body(default=None), task_id: str | None = None, seed: int | None = None) -> dict:
+        resolved_task_id = task_id if task_id is not None else None if payload is None else payload.task_id
+        resolved_seed = seed if seed is not None else None if payload is None else payload.seed
+        _validate_task_id(resolved_task_id)
+        return env.reset(task_id=resolved_task_id, seed=resolved_seed).model_dump(mode="json")
 
     @router.get("/state")
     def state() -> dict:
@@ -39,10 +46,11 @@ def create_v2_router() -> APIRouter:
         return public_rules()
 
     @router.post("/center/reset")
-    def center_reset(task_id: str | None = None, seed: int | None = None) -> dict:
-        if task_id is not None and task_id not in PUBLIC_TASK_IDS and not task_id.startswith("v2_"):
-            raise HTTPException(status_code=400, detail=f"Unknown v2 task_id '{task_id}'. Expected one of: {', '.join(PUBLIC_TASK_IDS)}")
-        observation = center_env.reset(task_id=task_id, seed=seed)
+    def center_reset(payload: ResetRequest | None = Body(default=None), task_id: str | None = None, seed: int | None = None) -> dict:
+        resolved_task_id = task_id if task_id is not None else None if payload is None else payload.task_id
+        resolved_seed = seed if seed is not None else None if payload is None else payload.seed
+        _validate_task_id(resolved_task_id)
+        observation = center_env.reset(task_id=resolved_task_id, seed=resolved_seed)
         _apply_center_training_pressure(center_env)
         observation = center_env.state()
         return _center_role_payload(observation)
@@ -62,10 +70,11 @@ def create_v2_router() -> APIRouter:
         return payload
 
     @router.post("/warehouse/reset")
-    def warehouse_reset(task_id: str | None = None, seed: int | None = None) -> dict:
-        if task_id is not None and task_id not in PUBLIC_TASK_IDS and not task_id.startswith("v2_"):
-            raise HTTPException(status_code=400, detail=f"Unknown v2 task_id '{task_id}'. Expected one of: {', '.join(PUBLIC_TASK_IDS)}")
-        observation = warehouse_env.reset(task_id=task_id, seed=seed)
+    def warehouse_reset(payload: ResetRequest | None = Body(default=None), task_id: str | None = None, seed: int | None = None) -> dict:
+        resolved_task_id = task_id if task_id is not None else None if payload is None else payload.task_id
+        resolved_seed = seed if seed is not None else None if payload is None else payload.seed
+        _validate_task_id(resolved_task_id)
+        observation = warehouse_env.reset(task_id=resolved_task_id, seed=resolved_seed)
         return _warehouse_role_payload(observation)
 
     @router.get("/warehouse/state")
@@ -91,12 +100,18 @@ def create_v2_router() -> APIRouter:
     return router
 
 
+def _validate_task_id(task_id: str | None) -> None:
+    if task_id is not None and task_id not in PUBLIC_TASK_IDS and not task_id.startswith("v2_"):
+        raise HTTPException(status_code=400, detail=f"Unknown v2 task_id '{task_id}'. Expected one of: {', '.join(PUBLIC_TASK_IDS)}")
+
+
 def _center_role_payload(observation) -> dict:
     frozen_warehouses = fixed_warehouse_actions(observation)
     payload = observation.model_dump(mode="json")
     payload["role"] = "center"
     payload["controlled_action_schema"] = {
         "central_procurements": [{"sku": "fresh_milk", "units": 4, "max_unit_cost": 4.0}],
+        "central_liquidations": [{"sku": "fresh_milk", "units": 2}],
         "central_replenishments": [{"to_warehouse": "north", "sku": "insulin_pack", "units": 2, "unit_price": 12.0}],
         "inventory_transfer_proposals": [{"from_warehouse": "west", "to_warehouse": "east", "sku": "rice_bag_5kg", "units": 2, "compensation": 10.0}],
         "offer_matches": [{"offer_signal_id": "west:offer:rice_bag_5kg", "request_signal_id": "east:request:rice_bag_5kg", "units": 2, "compensation": 10.0}],

@@ -26,6 +26,8 @@ order_rewards:
   silent_expiry_penalty_multiplier: 1.00
 
 center_rewards:
+  liquidation_recovery_multiplier: 0.50
+  liquidation_cap_per_round: 4
   transfer_broker_fee_per_unit: 0.30
   transfer_broker_fee_compensation_share: 0.05
   rejected_transfer_penalty: 1.00
@@ -53,5 +55,10 @@ global_rewards:
   spoilage_cost_multiplier: 1.0
   stockout_penalty_multiplier: 1.0
   trust_degradation_penalty: 1.0
-  terminal_inventory_penalty_multiplier: 0.05
+  fresh_milk_shelf_life_rounds: 4
+  fresh_milk_expiry_fraction_per_round: 0.35
+  fresh_milk_disposal_cost_multiplier: 0.10
+  terminal_pending_expiry_multiplier: 0.50
+  terminal_inventory_penalty_multiplier: 0.03
   terminal_fairness_weight: 20.0
+  terminal_fairness_cap: 12.0
