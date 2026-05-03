@@ -1,28 +1,5 @@
 # SupplyMind: Training LLM Agents to Coordinate Under Scarcity
 
-## TL;DR
-
-SupplyMind is an OpenEnv environment for training LLM agents to coordinate a regional supply network when inventory is scarce, information is incomplete, and every local decision has delayed consequences.
-
-The benchmark asks one question:
-
-**Can an LLM learn to coordinate when nobody sees the full truth, every warehouse has local incentives, and bad decisions only become obvious several rounds later?**
-
-SupplyMind is not a grid world, board game, or single-agent inventory toy. It is a multi-agent operations environment where:
-
-- the center sees compressed demand reports, not raw customer orders
-- warehouses see local orders, but not the full network
-- procurement takes time
-- trucks and drivers are limited
-- inventory can be in the wrong place
-- transfers cost money
-- overreaction creates spoilage and leftover penalties
-- unfairly starving one region hurts the final score
-
-The official score is global welfare. The agent wins only by improving the network, not by moving money around inside it.
-
-Demo: [rishavutk/supplymind](https://huggingface.co/spaces/rishavutk/supplymind). The Space is playable in the browser with the built-in heuristic strategy, so reviewers can inspect a full episode interactively before looking at the training results.
-
 ## The Scenario
 
 Imagine a regional quick-commerce network during a shortage.
@@ -34,6 +11,16 @@ That is the core of SupplyMind.
 The challenge is not "choose the largest number" or "route one vehicle." The challenge is coordination under scarcity: when to buy, when to hold, when to ship, when to broker a trade, when to respect local safety stock, and when to accept short-term cost to prevent a larger network failure.
 
 This is exactly the kind of repeated, partially observable decision problem where current LLM agents are interesting but unreliable. They can explain tradeoffs in language, but can they learn a policy that actually improves reward over many rounds?
+
+That is the benchmark question behind SupplyMind:
+
+**Can an LLM learn to coordinate when nobody sees the full truth, every warehouse has local incentives, and bad decisions only become obvious several rounds later?**
+
+SupplyMind is not a grid world, board game, or single-agent inventory toy. It is a multi-agent operations environment where the center sees compressed demand reports, warehouses see local orders, procurement takes time, trucks and drivers are limited, inventory spoils, and starving one region hurts the final score.
+
+The official score is global welfare. The agent wins only by improving the network, not by moving money around inside it.
+
+Demo: [rishavutk/supplymind](https://huggingface.co/spaces/rishavutk/supplymind). The Space is playable in the browser with the built-in heuristic strategy, so reviewers can inspect a full episode interactively before looking at the training results.
 
 ## Why This Environment Exists
 
@@ -127,7 +114,7 @@ What makes the environment stand out:
 - **Reward-hacking resistance**: transfer count is not directly rewarded in the global score; transfers matter only if they improve fulfillment, reduce stockouts, reduce waste, or improve fairness.
 - **Research-shaped difficulty**: the environment naturally supports curriculum training, held-out seeds, role-specific training, baselines, and reference policies.
 
-This is where SupplyMind should score strongest: the environment is built around a problem that is underexplored for LLM training.
+This is the core contribution: SupplyMind turns an underexplored real-world coordination problem into a verifiable LLM training environment.
 
 ## Tasks and Difficulty
 
@@ -142,7 +129,7 @@ SupplyMind includes deterministic training and benchmark tiers:
 
 Seeds generate different demand motifs: stable demand, understock, perishable pressure, regional shifts, transfer-needed cases, premium bursts, and tight-SLA pressure.
 
-This gives the environment two properties judges care about:
+This gives the environment two useful benchmark properties:
 
 - runs are reproducible
 - policies can be compared on held-out tasks instead of one lucky demo seed
@@ -304,7 +291,7 @@ average warehouse reward      28.04
 
 We use this joint rollout as validation that the trained role policies can interact coherently in the same multi-agent world. The main improvement claim remains the cleaner held-out role-training result above.
 
-The center GRPO run also shows the expected noisy-but-useful RL signal: loss alone is not the whole story, so we track reward and invalid actions alongside it.
+The center GRPO run also shows the expected noisy-but-useful RL signal: loss alone is not the full signal, so we track reward and invalid actions alongside it.
 
 ![Center SFT and GRPO training curves](assets/blog/center_training_loss_curves.png)
 
@@ -312,11 +299,9 @@ The honest claim is:
 
 **SupplyMind has a working training and evaluation pipeline, meaningful reward signal, reproducible baselines, and evidence that role behavior can be shaped with SFT plus GRPO.**
 
-## Why This Fits The Judging Criteria
+## Why This Matters For OpenEnv
 
 ### Environment Innovation
-
-SupplyMind's strongest category.
 
 This is not a clone of chess, snake, tic-tac-toe, or a small grid-world. It is a fresh LLM-agent training problem grounded in real operations: partial observability, local incentives, delayed procurement, scarce inventory, transfer negotiation, and fairness.
 
@@ -333,25 +318,7 @@ The project includes:
 - invalid payload tracking
 - parsed artifacts for train/validation/test visibility
 
-The presentation should be honest: the policy is not "solved," but the environment is demonstrably trainable and produces interpretable learning signals.
-
-### Presentation
-
-The demo should start with a human scenario, not an API.
-
-Start here:
-
-> North needs insulin. West has surplus. The center sees pressure, not raw orders. A transfer can save urgent demand, but it costs money and may expose West later.
-
-Then show:
-
-- the center view
-- the warehouse view
-- one bad baseline decision
-- one better coordinated decision
-- the reward breakdown explaining why it was better
-
-That turns the environment into a concrete scenario a non-technical judge can follow.
+The policy is not "solved," and that is not the claim. The claim is that the environment is demonstrably trainable and produces interpretable learning signals.
 
 ### Reward and Training Pipeline
 
@@ -361,9 +328,9 @@ It rewards fulfilled demand and penalizes the real costs of bad coordination: pr
 
 The training pipeline is coherent because center and warehouse roles can be trained separately before joint evaluation.
 
-## Demo Plan
+## How To Try It
 
-The best demo is short, visual, and evidence-driven:
+The Space demo is designed to be short, visual, and evidence-driven:
 
 1. Open with the insulin shortage scenario.
 2. Show that the center cannot see raw local orders.
