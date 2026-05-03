@@ -276,21 +276,7 @@ We trained role policies with an SFT warm-start followed by GRPO. Held-out role 
 | center | SFT parent | 0.5327 | 0.5977 | 186.56 | 0 | 22 |
 | center | GRPO child | 0.6469 | 0.7626 | 239.21 | 0 | 0 |
 
-After submission, I ran one additional sanity check with a larger policy: `Qwen/Qwen2.5-3B-Instruct`, loaded in 4-bit with LoRA adapters. I did not redesign the environment or change the reward logic; I kept the same SupplyMind task, the same center-role SFT -> GRPO pipeline, and the same held-out evaluation seeds. The question was simple: if the policy has enough capacity, does the environment produce learnable signal?
-
-The answer was yes.
-
-| Role | Policy | Global score | Role score | Raw reward | Invalid payloads | Invalid actions |
-|---|---|---:|---:|---:|---:|---:|
-| center | Base Qwen 3B | 0.5172 | 0.6336 | 176.12 | 36 | 0 |
-| center | SFT 3B | 0.5071 | 0.6359 | 191.34 | 9 | 21 |
-| center | GRPO 3B | 0.5179 | 0.6561 | 195.04 | 11 | 18 |
-
-![3B center follow-up results](assets/blog/center_3b_followup_results.png)
-
-This follow-up is useful because it isolates the environment signal from the small-model bottleneck. The base 3B model could often produce JSON-like text, but it still failed the action contract frequently. SFT reduced invalid payloads sharply, showing that the action interface is learnable. GRPO then improved the center role score from `0.6359` to `0.6561` and raised raw reward from `191.34` to `195.04`.
-
-The gain is modest, but important: SupplyMind is not just a static prompt-following test. Once the model can reliably speak the action language, reward-based training can move behavior in the intended direction. This supports the central claim that the environment works; the original submission's main limitation was policy capacity and training budget, not the absence of a training signal.
+After submission, I also ran a small Colab-limited trial with `Qwen/Qwen2.5-3B-Instruct`, loaded in 4-bit with LoRA adapters, using the same center-role SFT -> GRPO recipe. I treat this as a reproducibility and scaling check rather than a headline result: it confirmed that the same environment and reward loop can run on a stronger policy and still produce on-policy GRPO signal, but it was not tuned enough to replace the cleaner submitted evidence below.
 
 ![Center role score improves after GRPO](assets/blog/center_role_score_improvement.png)
 
